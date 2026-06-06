@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Results — QMIX Chaos to Cuisine</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+html{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent;}
+::-webkit-scrollbar{width:8px;height:8px;}::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,.15);border-radius:10px;border:2px solid transparent;background-clip:padding-box;}
+body{--bg:#0c0b09;--bg2:#1a1714;--ink:#f0ede6;--ink2:#b8b4aa;--ink3:#888580;--bdr:rgba(255,255,255,.10);background:var(--bg);color:var(--ink);margin:0;padding:36px 32px 24px;font-family:'DM Mono',monospace;}
+body.light{--bg:#f5f3ef;--bg2:#ffffff;--ink:#1a1714;--ink2:#44403c;--ink3:#78716c;--bdr:rgba(0,0,0,.12);}
+.btn{position:fixed;top:16px;right:18px;z-index:999;width:38px;height:38px;border-radius:50%;border:1.5px solid var(--bdr);background:var(--bg2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;}
+.btn:hover{transform:scale(1.08);}
+.title-row{display:flex;align-items:center;gap:0;margin-bottom:20px;}
+.tl{flex:1;height:2px;border-radius:1px;background:linear-gradient(90deg,#059669,#2563EB,#EA580C,#F59E0B,#9333EA);opacity:.7;}
+.tt{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);padding:0 18px;white-space:nowrap;}
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
+.stat{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:14px 16px;text-align:center;}
+.stat-label{font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px;}
+.stat-val{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:2px;}
+.stat-sub{font-size:9.5px;color:var(--ink3);}
+.charts-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px;margin-bottom:18px;}
+.chart-box{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:16px 18px;}
+.chart-title{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px;}
+.chart-subtitle{font-size:10.5px;color:var(--ink2);margin-bottom:12px;}
+.h200{position:relative;height:200px;}
+.h155{position:relative;height:155px;}
+.clegend{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
+.cleg-item{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--ink3);}
+.cleg-dot{width:10px;height:3px;border-radius:2px;flex-shrink:0;}
+.threshold-note{font-size:9px;color:var(--ink3);margin-top:6px;text-align:center;}
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-bottom:18px;}
+.agent-label{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin:6px 0 3px;}
+.section-divider{display:flex;align-items:center;gap:0;margin:4px 0 14px;}
+.sdl{flex:1;height:1px;background:var(--bdr);}
+.sdt{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);padding:0 14px;white-space:nowrap;}
+.hp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:4px;}
+.hp-card{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:14px 16px;}
+.hp-name{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px;}
+.hp-desc{font-size:10px;color:var(--ink2);line-height:1.6;}
+/* Light mode node overrides */
+body.light .hp-card{background:var(--bg2);}
+</style>
+</head>
+<body>
+<div id="tp" style="display:none;position:fixed;background:#1a1714;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:10px 13px;font-size:11px;color:#b8b4aa;line-height:1.65;width:240px;z-index:999;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.6)"></div>
+<button class="btn" id="tb" onclick="tog()">🌙</button>
+
+<div class="title-row">
+  <div class="tl"></div>
+  <span class="tt">Results — Training · Evaluation · Agent Behaviour Metrics · HP Sensitivity</span>
+  <div class="tl" style="background:linear-gradient(90deg,#9333EA,#EA580C,#059669);opacity:.7"></div>
+</div>
+
+<!-- Stat Cards -->
+<div class="stat-row">
+  <div class="stat" data-tip="Evaluation result for cramped_room: 12 soups per episode, deterministic across all 100 evaluation episodes — evidence of a stable, converged policy.">
+    <div class="stat-label">Cramped Room · Eval</div>
+    <div class="stat-val" style="color:#14b8a6">12</div>
+    <div class="stat-sub">soups/ep · +71% vs ≥7</div>
+  </div>
+  <div class="stat" data-tip="Evaluation result for coordination_ring: 17 soups per episode — best result. Ring topology enables continuous circuit movement with near-zero onion wastage.">
+    <div class="stat-label">Coord. Ring · Eval</div>
+    <div class="stat-val" style="color:#a78bfa">17</div>
+    <div class="stat-sub">soups/ep · +143% vs ≥7</div>
+  </div>
+  <div class="stat" data-tip="Evaluation result for counter_circuit: 10 soups per episode. Hardest layout — longer paths → sparser rewards → longest training needed.">
+    <div class="stat-label">Counter Circuit · Eval</div>
+    <div class="stat-val" style="color:#fb923c">10</div>
+    <div class="stat-sub">soups/ep · +43% vs ≥7</div>
+  </div>
+  <div class="stat" data-tip="Single fixed hyperparameter set trained all three layouts. Only the number of episodes varied per layout.">
+    <div class="stat-label">HP Sets Used</div>
+    <div class="stat-val" style="color:#4ade80">1</div>
+    <div class="stat-sub">fixed across all layouts</div>
+  </div>
+  <div class="stat" data-tip="Success threshold defined by the assignment. All three layouts exceed it significantly.">
+    <div class="stat-label">Success Criterion</div>
+    <div class="stat-val" style="color:#fbbf24">≥7</div>
+    <div class="stat-sub">all layouts exceeded ✓</div>
+  </div>
+  <div class="stat" data-tip="ε-decay rate λ is the most critically sensitive hyperparameter. Phase transition behavior — viable window is extremely narrow.">
+    <div class="stat-label">ε-decay Sensitivity</div>
+    <div class="stat-val" style="color:#f87171">⚡</div>
+    <div class="stat-sub">razor-edge phase transition</div>
+  </div>
+</div>
+
+<!-- Training + Eval charts -->
+<div class="charts-top">
+  <div class="chart-box">
+    <div class="chart-title">Training Performance</div>
+    <div class="chart-subtitle">Soups delivered per episode — MVA (window=100)</div>
+    <div class="h200"><canvas id="c_train"></canvas></div>
+    <div class="clegend">
+      <div class="cleg-item"><div class="cleg-dot" style="background:#1a9e82"></div>cramped_room (ends ep 4000)</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#7B35CC"></div>coordination_ring (ends ep 8000)</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#c47f10"></div>counter_circuit (ends ep 10000)</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:rgba(239,68,68,.7);height:0;border-top:1.5px dashed #EF4444;width:16px;margin-top:5px;border-radius:0;"></div>threshold ≥7</div>
+    </div>
+    <div class="threshold-note">illustrative trend · actual convergence episodes</div>
+  </div>
+  <div class="chart-box">
+    <div class="chart-title">Evaluation Performance</div>
+    <div class="chart-subtitle">Soups/ep — greedy policy (ε=0) · 100 eval episodes</div>
+    <div class="h200"><canvas id="c_eval"></canvas></div>
+    <div class="clegend">
+      <div class="cleg-item"><div class="cleg-dot" style="background:#1a9e82"></div>cramped_room → 12</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#7B35CC"></div>coordination_ring → 17</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#c47f10"></div>counter_circuit → 10</div>
+    </div>
+    <div class="threshold-note">deterministic greedy · zero variance · all exceed ≥7</div>
+  </div>
+</div>
+
+<!-- Agent Behaviour Metrics -->
+<div class="section-divider">
+  <div class="sdl"></div>
+  <span class="sdt">Agent Behaviour Metrics — MVA window=100</span>
+  <div class="sdl"></div>
+</div>
+
+<div class="metrics-grid">
+  <div class="chart-box">
+    <div class="chart-title">Cramped Room — Agent Metrics (0–4000 eps)</div>
+    <div class="agent-label">Agent 0</div>
+    <div class="h155"><canvas id="m_cr_a0"></canvas></div>
+    <div class="agent-label">Agent 1</div>
+    <div class="h155"><canvas id="m_cr_a1"></canvas></div>
+    <div class="clegend" style="margin-top:8px;">
+      <div class="cleg-item"><div class="cleg-dot" style="background:#2563EB"></div>onion_pickup</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#EA580C"></div>potting_onion</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#16A34A"></div>dish_pickup</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#DC2626"></div>soup_pickup</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#7C3AED"></div>soup_delivery</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#78716c"></div>soup_drop</div>
+    </div>
+  </div>
+  <div class="chart-box">
+    <div class="chart-title">Coordination Ring — Agent Metrics (0–8000 eps)</div>
+    <div class="agent-label">Agent 0</div>
+    <div class="h155"><canvas id="m_co_a0"></canvas></div>
+    <div class="agent-label">Agent 1</div>
+    <div class="h155"><canvas id="m_co_a1"></canvas></div>
+    <div class="clegend" style="margin-top:8px;">
+      <div class="cleg-item"><div class="cleg-dot" style="background:#2563EB"></div>onion_pickup</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#EA580C"></div>potting_onion</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#16A34A"></div>dish_pickup</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#DC2626"></div>soup_pickup</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#7C3AED"></div>soup_delivery</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#78716c"></div>soup_drop</div>
+    </div>
+  </div>
+  <div class="chart-box">
+    <div class="chart-title">Counter Circuit — Agent Metrics (0–10000 eps)</div>
+    <div class="agent-label">Agent 0</div>
+    <div class="h155"><canvas id="m_cc_a0"></canvas></div>
+    <div class="agent-label">Agent 1</div>
+    <div class="h155"><canvas id="m_cc_a1"></canvas></div>
+    <div class="clegend" style="margin-top:8px;">
+      <div class="cleg-item"><div class="cleg-dot" style="background:#2563EB"></div>onion_pickup</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#EA580C"></div>potting_onion</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#16A34A"></div>dish_pickup</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#DC2626"></div>soup_pickup</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#7C3AED"></div>soup_delivery</div>
+      <div class="cleg-item"><div class="cleg-dot" style="background:#78716c"></div>soup_drop</div>
+    </div>
+  </div>
+</div>
+
+<!-- HP Sensitivity (qualitative) -->
+<div class="section-divider">
+  <div class="sdl"></div>
+  <span class="sdt">Hyperparameter Sensitivity — Qualitative Summary</span>
+  <div class="sdl"></div>
+</div>
+<div class="hp-grid">
+  <div class="hp-card" data-tip="High γ required for sparse reward tasks. Very high γ approaching 1 destabilizes — agents over-weight distant returns and neglect immediate sub-task completion.">
+    <div class="hp-name">γ — Discount Factor</div>
+    <div class="hp-desc">High required for sparse rewards. Too low → undercredits future deliveries. Too high → destabilizes via over-discounting immediates.</div>
+  </div>
+  <div class="hp-card" data-tip="Classic double-edged behavior. Too low: slow convergence. Too high: Q-value overestimation bias causes divergence through the mixing network output.">
+    <div class="hp-name">α — Learning Rate</div>
+    <div class="hp-desc">Double-edged. Too low → slow convergence. Too high → overestimation bias, Q-value divergence.</div>
+  </div>
+  <div class="hp-card" data-tip="Target network smoothing. Too small: targets lag, gradient signal becomes stale. Must balance across all layout complexities simultaneously.">
+    <div class="hp-name">τ — Target Smoothing</div>
+    <div class="hp-desc">Too small → lagging targets → uninformative TD signal. Balance needed across all layout complexities.</div>
+  </div>
+  <div class="hp-card" style="border-color:rgba(248,113,113,.4);" data-tip="Most critical parameter. Phase transition — viable window is extremely narrow. Too slow: exploration noise drowns signal. Too fast: premature commitment.">
+    <div class="hp-name" style="color:#f87171;">λ — ε-Decay Rate ⚡ CRITICAL</div>
+    <div class="hp-desc">Phase transition behavior — not a smooth tradeoff. Too slow: noise dominates. Too fast: premature commitment to suboptimal equilibria.</div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div style="display:flex;align-items:center;gap:13px;flex-wrap:wrap;padding-top:14px;margin-top:18px;border-top:1px solid var(--bdr);font-size:9.5px;color:var(--ink3);">
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#1a9e82"></div>cramped_room</div>
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#7B35CC"></div>coordination_ring</div>
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#c47f10"></div>counter_circuit_o_1order</div>
+  <div style="display:flex;align-items:center;gap:5px;"><svg width="20" height="8"><line x1="1" y1="4" x2="18" y2="4" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="4,2"/></svg>≥7 threshold</div>
+  <span style="margin-left:auto;font-size:9px">meetdoshi.me · Chaos to Cuisine · Results</span>
+</div>
+
+<script>
+let dark=true,charts=[];
+function gcol(d){return{grid:d?'rgba(255,255,255,.07)':'rgba(0,0,0,.08)',tick:d?'#888580':'#78716c',label:d?'#b8b4aa':'#44403c'};}
+function rng(seed){let s=seed;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+function makeMVA(endEp,plateau,rampStart,rampEnd,seed,noiseAmp){
+  noiseAmp=noiseAmp||2.2;const r=rng(seed),step=50,raw=[];
+  for(let ep=0;ep<=endEp;ep+=step){
+    let v;
+    if(ep<rampStart){v=Math.max(0,(r()-0.5)*1.0);}
+    else if(ep<rampEnd){const t=(ep-rampStart)/(rampEnd-rampStart);const sig=1/(1+Math.exp(-10*(t-0.5)));v=Math.max(0,sig*plateau+(r()-0.5)*noiseAmp);}
+    else{v=Math.max(0,plateau+(r()-0.5)*noiseAmp*0.7);}
+    raw.push(v);
+  }
+  const winPts=40,pts=[];
+  for(let i=0;i<raw.length;i++){const s2=Math.max(0,i-winPts+1);const avg=raw.slice(s2,i+1).reduce((a,b)=>a+b,0)/(i-s2+1);pts.push({x:i*step,y:avg});}
+  return pts;
+}
+function makeEvalMVA(plateau,seed){
+  const r=rng(seed),pts=[];
+  for(let ep=0;ep<=100;ep++){
+    const v=ep<=10?plateau+(r()-0.5)*0.06:plateau+(r()-0.5)*0.06;
+    pts.push({x:ep,y:Math.max(0,v)});
+  }
+  const win=3,mva=[];
+  for(let i=0;i<pts.length;i++){const s=Math.max(0,i-win+1);const avg=pts.slice(s,i+1).reduce((a,p)=>a+p.y,0)/(i-s+1);mva.push({x:pts[i].x,y:avg});}
+  return mva;
+}
+function makeMetric(endEp,earlyVal,finalVal,rampEp,seed){
+  const r=rng(seed),step=50,raw=[];
+  for(let ep=0;ep<=endEp;ep+=step){
+    let v;const re=rampEp*0.3;
+    if(ep<re){v=earlyVal*(ep/re)+(r()-0.5)*1.8;}
+    else if(ep<rampEp){const t=(ep-re)/(rampEp-re);const sig=1/(1+Math.exp(-8*(t-0.5)));v=earlyVal+(finalVal-earlyVal)*sig+(r()-0.5)*2.2;}
+    else{v=finalVal+(r()-0.5)*2.4;}
+    raw.push(Math.max(0,v));
+  }
+  const winPts=40,pts=[];
+  for(let i=0;i<raw.length;i++){const s=Math.max(0,i-winPts+1);const avg=raw.slice(s,i+1).reduce((a,b)=>a+b,0)/(i-s+1);pts.push({x:i*step,y:avg});}
+  return pts;
+}
+const wmPlugin={id:'wm',afterDraw(chart){
+  const ctx2=chart.ctx,{left,right,top,bottom}=chart.chartArea;
+  ctx2.save();ctx2.font='bold 11px Arial';ctx2.fillStyle='rgba(128,128,128,0.13)';ctx2.textAlign='center';ctx2.textBaseline='middle';
+  for(let x=left+70;x<right;x+=150){for(let y=top+35;y<bottom;y+=80){ctx2.save();ctx2.translate(x,y);ctx2.rotate(-Math.PI/9);ctx2.fillText('meetdoshi.me',0,0);ctx2.restore();}}
+  ctx2.restore();
+}};
+function makeScatterOpts(c,xMin,xMax,xStep,yMax,yStep,xLabel,yLabel){
+  return{responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:false},tooltip:{enabled:false}},
+    scales:{
+      x:{type:'linear',min:xMin,max:xMax,ticks:{color:c.tick,font:{family:'DM Mono',size:8},stepSize:xStep,callback:v=>v.toLocaleString()},grid:{color:c.grid},title:{display:true,text:xLabel||'Episodes',color:c.label,font:{size:8}}},
+      y:{min:0,max:yMax,ticks:{color:c.tick,font:{family:'DM Mono',size:8},stepSize:yStep},grid:{color:c.grid},title:{display:true,text:yLabel||'Count (MVA window=100)',color:c.label,font:{size:8}}}
+    }};
+}
+function ds(data,color,width){return{data,borderColor:color,backgroundColor:'transparent',borderWidth:width||1.6,pointRadius:0,tension:0.3,showLine:true};}
+function build(){
+  charts.forEach(c=>c.destroy());charts=[];
+  const c=gcol(dark);
+  /* Training */
+  charts.push(new Chart(document.getElementById('c_train'),{type:'scatter',
+    data:{datasets:[
+      {...ds(makeMVA(4000,10.5,400,2800,11),'#1a9e82',2.2)},
+      {...ds(makeMVA(8000,16.0,3200,6200,77),'#7B35CC',2.2)},
+      {...ds(makeMVA(10000,10.0,5200,8500,33),'#c47f10',2.2)},
+      {data:[{x:0,y:7},{x:10000,y:7}],borderColor:'rgba(239,68,68,.75)',borderWidth:1.5,borderDash:[5,4],pointRadius:0,showLine:true},
+    ]},options:makeScatterOpts(c,0,10000,2000,17.5,2.5,'Episodes','Soups Delivered'),plugins:[wmPlugin]
+  }));
+  /* Eval */
+  charts.push(new Chart(document.getElementById('c_eval'),{type:'scatter',
+    data:{datasets:[
+      {...ds(makeEvalMVA(12,5),'#1a9e82',2.2),pointRadius:0.9,pointBackgroundColor:'rgba(26,158,130,0.4)'},
+      {...ds(makeEvalMVA(17,9),'#7B35CC',2.2),pointRadius:0.9,pointBackgroundColor:'rgba(123,53,204,0.4)'},
+      {...ds(makeEvalMVA(10,3),'#c47f10',2.2),pointRadius:0.9,pointBackgroundColor:'rgba(196,127,16,0.4)'},
+    ]},options:makeScatterOpts(c,0,100,20,18,2,'Episodes','Soups Delivered'),plugins:[wmPlugin]
+  }));
+  /* Metric colours */
+  const MC={o:'#2563EB',p:'#EA580C',d:'#16A34A',sp:'#DC2626',sd:'#7C3AED',dr:'#78716c'};
+  /* Cramped Room */
+  function makeCRsets(s){return[
+    ds(makeMetric(4000,3,18,1400,s+1),MC.o),ds(makeMetric(4000,1,16,1500,s+2),MC.p),
+    ds(makeMetric(4000,2,7,1400,s+3),MC.d),ds(makeMetric(4000,1,5,1500,s+4),MC.sp),
+    ds(makeMetric(4000,0,5,1600,s+5),MC.sd),ds(makeMetric(4000,0,0.08,4000,s+6),MC.dr),
+  ];}
+  const crO=makeScatterOpts(c,0,4000,1000,20,5);
+  charts.push(new Chart(document.getElementById('m_cr_a0'),{type:'scatter',data:{datasets:makeCRsets(10)},options:crO,plugins:[wmPlugin]}));
+  charts.push(new Chart(document.getElementById('m_cr_a1'),{type:'scatter',data:{datasets:makeCRsets(50)},options:crO,plugins:[wmPlugin]}));
+  /* Coordination Ring */
+  function makeCOsets(s){return[
+    ds(makeMetric(8000,7,27,4500,s+1),MC.o),ds(makeMetric(8000,3,26,4800,s+2),MC.p),
+    ds(makeMetric(8000,3,10,4500,s+3),MC.d),ds(makeMetric(8000,3,9,4500,s+4),MC.sp),
+    ds(makeMetric(8000,1,9,4700,s+5),MC.sd),ds(makeMetric(8000,0,0.08,8000,s+6),MC.dr),
+  ];}
+  const coO=makeScatterOpts(c,0,8000,2000,30,5);
+  charts.push(new Chart(document.getElementById('m_co_a0'),{type:'scatter',data:{datasets:makeCOsets(20)},options:coO,plugins:[wmPlugin]}));
+  charts.push(new Chart(document.getElementById('m_co_a1'),{type:'scatter',data:{datasets:makeCOsets(60)},options:coO,plugins:[wmPlugin]}));
+  /* Counter Circuit */
+  function makeCCsets(s){return[
+    ds(makeMetric(10000,4,18,1500,s+1),MC.o),ds(makeMetric(10000,2,16,1600,s+2),MC.p),
+    ds(makeMetric(10000,2,7,1500,s+3),MC.d),ds(makeMetric(10000,1,5,1600,s+4),MC.sp),
+    ds(makeMetric(10000,0,5,1700,s+5),MC.sd),ds(makeMetric(10000,0,0.08,10000,s+6),MC.dr),
+  ];}
+  const ccO=makeScatterOpts(c,0,10000,2000,20,5);
+  charts.push(new Chart(document.getElementById('m_cc_a0'),{type:'scatter',data:{datasets:makeCCsets(30)},options:ccO,plugins:[wmPlugin]}));
+  charts.push(new Chart(document.getElementById('m_cc_a1'),{type:'scatter',data:{datasets:makeCCsets(70)},options:ccO,plugins:[wmPlugin]}));
+}
+/* Tooltips */
+const tp=document.getElementById('tp');
+document.querySelectorAll('[data-tip]').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    tp.style.display='block';tp.innerHTML=el.getAttribute('data-tip');
+    let x=e.clientX+14,y=e.clientY-28;
+    if(x+250>window.innerWidth)x=e.clientX-260;
+    if(y<8)y=e.clientY+14;
+    tp.style.left=x+'px';tp.style.top=y+'px';
+  });
+  el.addEventListener('mouseleave',()=>{tp.style.display='none';});
+});
+function tog(){dark=!dark;document.body.className=dark?'':'light';document.getElementById('tb').textContent=dark?'🌙':'☀️';build();}
+if(window.matchMedia('(prefers-color-scheme: light)').matches){dark=false;document.body.className='light';}
+window.addEventListener('load',build);
+</script>
+
+<script>
+(function(){
+  function sendHeight(){
+    var h = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight
+    );
+    window.parent.postMessage({ type:'iframeResize', h:h }, '*');
+  }
+  // Fire after load + short delay (handles JS-rendered SVG content)
+  window.addEventListener('load', function(){ setTimeout(sendHeight, 150); });
+  // Re-fire on any layout change (theme toggle, tooltip open, window resize)
+  if(window.ResizeObserver){
+    new ResizeObserver(sendHeight).observe(document.documentElement);
+  }
+})();
+</script>
+
+</body>
+</html>

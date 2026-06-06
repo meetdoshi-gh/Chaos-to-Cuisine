@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ε-Decay Sensitivity — The Razor's Edge</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+html{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,.15);border-radius:10px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-thumb:hover{background-color:rgba(255,255,255,.3);}
+body{--bg:#0c0b09;--bg2:#1a1714;--ink:#f0ede6;--ink2:#b8b4aa;--ink3:#888580;--bdr:rgba(255,255,255,.10);background:var(--bg);color:var(--ink);margin:0;padding:36px 32px 28px;font-family:'DM Mono',monospace;}
+body.light{--bg:#f5f3ef;--bg2:#ffffff;--ink:#1a1714;--ink2:#44403c;--ink3:#78716c;--bdr:rgba(0,0,0,.12);}
+.btn{position:fixed;top:16px;right:18px;z-index:999;width:38px;height:38px;border-radius:50%;border:1.5px solid var(--bdr);background:var(--bg2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;}
+.btn:hover{transform:scale(1.08);}
+.title-row{display:flex;align-items:center;gap:0;margin-bottom:22px;}
+.tl{flex:1;height:2px;border-radius:1px;background:linear-gradient(90deg,#f87171,#fbbf24,#14b8a6);opacity:.7;}
+.tt{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);padding:0 18px;white-space:nowrap;}
+.context{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.22);border-radius:10px;padding:13px 18px;margin-bottom:22px;font-size:11px;color:var(--ink2);line-height:1.7;}
+.context strong{color:#fde68a;}
+.panels{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+.cpanel{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:16px;cursor:default;}
+.cp-label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:3px;}
+.cp-title{font-family:'Syne',sans-serif;font-weight:800;font-size:15px;margin-bottom:4px;}
+.cp-desc{font-size:10px;color:var(--ink2);line-height:1.6;margin-bottom:12px;}
+.cp-low{border-color:#f87171;}.cp-low .cp-label{color:#f87171;}.cp-low .cp-title{color:#fca5a5;}
+.cp-opt{border-color:#14b8a6;box-shadow:0 0 16px rgba(20,184,166,.2);}.cp-opt .cp-label{color:#2dd4bf;}.cp-opt .cp-title{color:#5eead4;}
+.cp-high{border-color:#fb923c;}.cp-high .cp-label{color:#fb923c;}.cp-high .cp-title{color:#fdba74;}
+.annotation{display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,.04);border-radius:6px;padding:7px 10px;margin-top:6px;font-size:10px;color:var(--ink2);line-height:1.55;}
+.ann-icon{flex-shrink:0;font-size:13px;margin-top:1px;}
+.timeline{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:16px 20px;margin-bottom:20px;}
+.tl-title{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink3);margin-bottom:14px;}
+.bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.insight-box{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:14px 16px;}
+.ib-title{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--ink);margin-bottom:6px;}
+.ib-body{font-size:10.5px;color:var(--ink2);line-height:1.65;}
+.razor-vis{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:14px 16px;}
+
+/* ── Light mode node color overrides ── */
+body.light .obs{background:#eff6ff!important;}
+body.light .obs .nd-label,body.light .obs .k{color:#1e40af!important;}
+body.light .obs .nd-title,body.light .obs .v{color:#1e3a8a!important;}
+body.light .obs .nd-sub,body.light .obs .s{color:#1e40af!important;}
+body.light .hyp{background:#fdf2f8!important;}
+body.light .hyp .nd-label,body.light .hyp .k{color:#9d174d!important;}
+body.light .hyp .nd-title,body.light .hyp .v{color:#831843!important;}
+body.light .hyp .nd-sub,body.light .hyp .s{color:#9d174d!important;}
+body.light .mix{background:#fffbeb!important;box-shadow:none!important;}
+body.light .mix .nd-label,body.light .mix .k{color:#92400e!important;}
+body.light .mix .nd-title,body.light .mix .v{color:#451a03!important;}
+body.light .mix .nd-sub,body.light .mix .s{color:#92400e!important;}
+body.light .qx-core{background:#fffbeb!important;box-shadow:none!important;}
+body.light .qx-core .k{color:#92400e!important;}
+body.light .qx-core .v{color:#451a03!important;}
+body.light .qx-pro{background:#ecfdf5!important;}
+body.light .qx-pro .k{color:#065f46!important;}
+body.light .qx-pro .v{color:#022c22!important;}
+body.light .qx-trade{background:#fffbeb!important;}
+body.light .qx-trade .k{color:#92400e!important;}
+body.light .qx-trade .v{color:#451a03!important;}
+body.light .sl{background:#f8fafc!important;border-color:#4B5563!important;}
+body.light .sl .k{color:#374151!important;}
+body.light .sl .v{color:#111827!important;}
+body.light .sl .d,body.light .sl .s{color:#44403c!important;}
+body.light .sl-con,body.light .ma-con{background:#fff5f5!important;border-color:#DC2626!important;}
+body.light .sl-con .k,body.light .ma-con .k{color:#991b1b!important;}
+body.light .sl-con .v,body.light .ma-con .v{color:#7f1d1d!important;}
+body.light .sl-con .d,body.light .ma-con .d{color:#44403c!important;}
+body.light .out{background:#faf5ff!important;}
+body.light .out .nd-label,body.light .out .k{color:#6b21a8!important;}
+body.light .out .nd-title,body.light .out .v{color:#3b0764!important;}
+body.light .out .nd-sub,body.light .out .s{color:#6b21a8!important;}
+body.light .p-vdn{background:#f8fafc!important;border-color:#475569!important;}
+body.light .p-vdn .panel-label{color:#475569!important;}
+body.light .p-vdn .panel-title{color:#1e293b!important;}
+body.light .p-qmix{background:#fffbeb!important;box-shadow:none!important;}
+body.light .p-qmix .panel-label{color:#92400e!important;}
+body.light .p-qmix .panel-title{color:#451a03!important;}
+body.light .p-viol{background:#fff5f5!important;}
+body.light .p-viol .panel-label{color:#991b1b!important;}
+body.light .p-viol .panel-title{color:#7f1d1d!important;}
+body.light .sp-box{background:#f9fafb!important;color:#374151!important;}
+body.light .igm-grid,body.light .deriv-step,body.light .hp-card{background:var(--bg2)!important;}
+body.light .nd .d,body.light .nd .nd-sub,body.light .nd .s{color:var(--ink2)!important;}
+body.light .act-fn{background:#f9fafb!important;border-color:#d97706!important;}
+body.light .act-fn .fn{color:#92400e!important;}
+body.light .cpanel{background:var(--bg2)!important;}
+body.light .cp-low{border-color:#f87171!important;}
+body.light .cp-opt{border-color:#14b8a6!important;box-shadow:none!important;}
+body.light .cp-high{border-color:#fb923c!important;}
+</style>
+</head>
+<body>
+<div id="tp" style="display:none;position:fixed;background:#1a1714;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:10px 13px;font-size:11px;color:#b8b4aa;line-height:1.65;width:250px;z-index:999;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.6)"></div>
+<button class="btn" id="tb" onclick="tog()">🌙</button>
+<div class="title-row">
+  <div class="tl"></div>
+  <span class="tt">ε-Decay Sensitivity — Why Off-Policy MARL Lives on a Razor's Edge</span>
+  <div class="tl" style="background:linear-gradient(90deg,#14b8a6,#fbbf24,#f87171);opacity:.7"></div>
+</div>
+
+<div class="context">
+  <strong>Core insight:</strong> QMIX is off-policy — exploration must be managed externally through ε-greedy decay. In a cooperative sparse-reward task, the linear decay rate <strong>λ controls how fast ε drops</strong> from 1.0 to its minimum — and this single scalar determines whether training converges at all. Only a narrow range of λ values produced successful convergence. Adjacent values fail completely — not partially, not slowly, but categorically. This is not a smooth tradeoff; it is a phase transition.
+</div>
+
+<!-- Three training trajectory panels -->
+<div class="panels">
+  <!-- Too slow -->
+  <div class="cpanel cp-low" data-tip="λ too small → ε decays too slowly: exploration probability stays high for too long. Agents are still taking high-fraction random actions deep into training. The replay buffer fills with incoherent random transitions. Any correct coordination discovered is immediately washed out by subsequent random interactions. Q-values never stabilize.">
+    <div class="cp-label">λ too small · ε decays slowly</div>
+    <div class="cp-title">Suppressed Learning</div>
+    <div class="cp-desc">ε stays high too long — buffer floods with random transitions that dominate gradient signal. Agents discover correct coordination momentarily but incoherent data overwhelms it.</div>
+    <canvas id="chartLow" height="130"></canvas>
+    <div class="annotation"><div class="ann-icon">🔴</div><div>ε still high deep into training — meaningful coordination signal buried in noise</div></div>
+  </div>
+
+  <!-- Optimal -->
+  <div class="cpanel cp-opt" data-tip="λ optimal → ε decays at exactly the right pace: still exploring when Q-values are immature, transitioning to exploitation when the mixing network begins to produce meaningful decompositions. The window is narrow: just enough random exploration to prevent premature convergence, just fast enough to allow Q-values to stabilize.">
+    <div class="cp-label">λ optimal · ε decay well-timed</div>
+    <div class="cp-title">Clean Convergence</div>
+    <div class="cp-desc">ε decays at exactly the rate that matches Q-value maturation timescale. Exploration transitions to exploitation exactly when the mixing network begins producing meaningful decompositions.</div>
+    <canvas id="chartOpt" height="130"></canvas>
+    <div class="annotation"><div class="ann-icon">🟢</div><div>Smooth sigmoid rise — ε transition aligns with policy maturity</div></div>
+  </div>
+
+  <!-- Too fast -->
+  <div class="cpanel cp-high" data-tip="λ too large → ε decays too fast: agents commit to greedy exploitation before the mixing network has learned meaningful value decompositions. They discover locally consistent but globally suboptimal coordination equilibria. Once committed, the replay buffer distribution locks in the bad strategy.">
+    <div class="cp-label">λ too large · ε decays fast</div>
+    <div class="cp-title">Premature Commitment</div>
+    <div class="cp-desc">ε hits minimum before Q-values are reliable — agents commit to locally consistent but globally suboptimal coordination patterns. Performance briefly rises then collapses as bad equilibrium locks in.</div>
+    <canvas id="chartHigh" height="130"></canvas>
+    <div class="annotation"><div class="ann-icon">🟠</div><div>False start: brief rise then collapse — ε too low too early</div></div>
+  </div>
+</div>
+
+<!-- ε timeline comparison -->
+<div class="timeline" data-tip="The ε schedule shows what happens to exploration probability ε over episodes for three different λ (decay rate) values. λ controls how fast ε drops. The chart makes the λ→ε relationship explicit: a larger λ means ε falls faster; a smaller λ means ε stays high longer.">
+  <div class="tl-title">ε Schedule Timeline — How λ (Decay Rate) Controls ε (Exploration Probability)</div>
+  <div style="font-size:10px;color:var(--ink3);margin-bottom:12px;"><strong style="color:var(--ink2)">λ</strong> is the parameter you set · <strong style="color:var(--ink2)">ε(t)</strong> is what results · each curve shows a different λ choice</div>
+  <canvas id="chartEpsilon" height="110"></canvas>
+</div>
+
+<div class="bottom-row">
+  <!-- Off-policy explanation -->
+  <div class="insight-box" data-tip="The connection between off-policy learning and ε-sensitivity: unlike on-policy methods where exploration is naturally balanced by the policy itself, off-policy methods treat exploration as an external control variable.">
+    <div class="ib-title">Why Off-Policy Transfers This Burden to λ</div>
+    <div class="ib-body">
+      On-policy methods (MAPPO, PPO) use entropy regularization and advantage estimation to implicitly balance exploration — the algorithm manages exploration pressure automatically through policy gradients.<br><br>
+      QMIX is off-policy: the replay buffer stores transitions from an ε-greedy behavioral policy, but the agent is trained toward a greedy target policy. <strong style="color:#fde68a">All exploration is externally managed through ε(t)</strong>. There is no internal mechanism to detect that Q-values are insufficiently mature — the decay schedule runs regardless of learning progress.<br><br>
+      This is architecturally efficient (no entropy terms, no clip ratios) but creates a structural vulnerability: a cooperative task with sparse rewards requires precisely timed exploration that a fixed schedule cannot adaptively guarantee.
+    </div>
+  </div>
+
+  <!-- The project name -->
+  <div class="razor-vis" data-tip="The project name 'Chaos to Cuisine' comes directly from this finding: with the wrong λ, agents produce chaotic behavior with no meaningful coordination (chaos). With the correct λ, they learn to systematically cook and deliver soups (cuisine). The margin between these two outcomes is a single decimal in one hyperparameter.">
+    <div style="font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#fbbf24;margin-bottom:14px;">Why This Project Is Called "Chaos to Cuisine"</div>
+
+    <!-- Visual razor -->
+    <div style="position:relative;height:60px;margin-bottom:16px;">
+      <svg viewBox="0 0 400 60" width="100%" style="overflow:visible;">
+        <!-- Axis -->
+        <line x1="20" y1="30" x2="380" y2="30" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+        <!-- Failure zone left -->
+        <rect x="20" y="15" width="120" height="30" rx="4" fill="rgba(248,113,113,.1)" stroke="rgba(248,113,113,.3)" stroke-width="1"/>
+        <text x="80" y="33" text-anchor="middle" font-size="10" fill="#f87171" font-family="DM Mono">CHAOS</text>
+        <text x="80" y="45" text-anchor="middle" font-size="8" fill="rgba(248,113,113,.6)" font-family="DM Mono">λ too small</text>
+        <!-- Success zone -->
+        <rect x="170" y="10" width="60" height="40" rx="4" fill="rgba(20,184,166,.15)" stroke="#14b8a6" stroke-width="1.5"/>
+        <text x="200" y="28" text-anchor="middle" font-size="9" fill="#5eead4" font-family="DM Mono">CUISINE</text>
+        <text x="200" y="42" text-anchor="middle" font-size="8" fill="rgba(20,184,166,.8)" font-family="DM Mono">optimal λ</text>
+        <!-- Failure zone right -->
+        <rect x="260" y="15" width="120" height="30" rx="4" fill="rgba(251,146,60,.1)" stroke="rgba(251,146,60,.3)" stroke-width="1"/>
+        <text x="320" y="33" text-anchor="middle" font-size="10" fill="#fb923c" font-family="DM Mono">CHAOS</text>
+        <text x="320" y="45" text-anchor="middle" font-size="8" fill="rgba(251,146,60,.6)" font-family="DM Mono">λ too large</text>
+        <!-- Razor lines at transitions -->
+        <line x1="170" y1="5" x2="170" y2="55" stroke="rgba(255,255,255,.3)" stroke-width="1" stroke-dasharray="3,2"/>
+        <line x1="230" y1="5" x2="230" y2="55" stroke="rgba(255,255,255,.3)" stroke-width="1" stroke-dasharray="3,2"/>
+      </svg>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+      <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:6px;padding:8px;">
+        <div style="font-size:20px;font-weight:800;color:#f87171;line-height:1.2">✗</div>
+        <div style="font-size:9px;color:var(--ink3)">λ too small<br>ε stays high · fails</div>
+      </div>
+      <div style="background:rgba(20,184,166,.1);border:1px solid #14b8a6;border-radius:6px;padding:8px;box-shadow:0 0 10px rgba(20,184,166,.15);">
+        <div style="font-size:20px;font-weight:800;color:#5eead4;line-height:1.2">✓</div>
+        <div style="font-size:9px;color:#14b8a6">optimal λ<br>ε well-timed · converged</div>
+      </div>
+      <div style="background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.2);border-radius:6px;padding:8px;">
+        <div style="font-size:20px;font-weight:800;color:#fb923c;line-height:1.2">✗</div>
+        <div style="font-size:9px;color:var(--ink3)">λ too large<br>ε crashes early · fails</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div style="display:flex;align-items:center;gap:13px;flex-wrap:wrap;padding-top:14px;margin-top:18px;border-top:1px solid var(--bdr);font-size:9.5px;color:var(--ink3);">
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#f87171"></div>λ too slow — learning suppressed</div>
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#14b8a6"></div>λ optimal — clean convergence</div>
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#fb923c"></div>λ too fast — premature commitment</div>
+  <span style="margin-left:auto;font-size:9px">meetdoshi.me · Chaos to Cuisine · ε-Decay Sensitivity</span>
+</div>
+
+<script>
+Chart.defaults.color='#888580';
+Chart.defaults.borderColor='rgba(255,255,255,.06)';
+Chart.defaults.font.family="'DM Mono',monospace";
+Chart.defaults.font.size=10;
+
+const eps=Array.from({length:41},(_,i)=>i*100);
+
+// Smooth sigmoid helper
+function sig(len,onset,peak,speed,noise=1.2,collapse=false,collapseAt=50){
+  return Array.from({length:len},(_,i)=>{
+    const t=Math.max(0,(i-onset)/12);
+    let v=peak/(1+Math.exp(-speed*(t-.5)));
+    if(collapse&&i>collapseAt)v=Math.max(0,v-((i-collapseAt)*.25));
+    const j=((i*7+3)%11/11-.5)*Math.max(.15,noise*(1-t*.7));
+    return Math.max(0,v+j);
+  });
+}
+
+// TOO LOW: flat at low value
+const lowData=Array.from({length:41},(_,i)=>{
+  const j=((i*11+5)%9/9-.45)*1.5;
+  return Math.max(0,1.5+j);
+});
+
+// OPTIMAL: clean sigmoid
+const optData=sig(41,10,10,8,.8);
+
+// TOO HIGH: rises then collapses
+const highData=Array.from({length:41},(_,i)=>{
+  let v=0;
+  if(i<8)v=(i/8)*3.5;
+  else if(i<14)v=4-((i-8)*.6);
+  else v=Math.max(0,4-((i-8)*.65));
+  return Math.max(0,v+(((i*7+2)%7/7)-.5)*1.2);
+});
+
+const chartCfg=(data,color,maxY=12)=>({
+  type:'line',
+  data:{labels:eps,datasets:[
+    {data,borderColor:color,backgroundColor:color.replace(')',', .1)').replace('rgb','rgba'),borderWidth:2,pointRadius:0,tension:.4,fill:true},
+    {data:Array(41).fill(7),borderColor:'rgba(74,222,128,.3)',borderWidth:1.2,borderDash:[5,4],pointRadius:0,fill:false,label:'≥7 threshold'}
+  ]},
+  options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{display:false},tooltip:{enabled:false}},
+    scales:{
+      x:{title:{display:true,text:'Episodes',color:'#888580',font:{size:9}},ticks:{maxTicksLimit:6,color:'#888580'},grid:{color:'rgba(255,255,255,.04)'}},
+      y:{title:{display:true,text:'Soups/ep',color:'#888580',font:{size:9}},ticks:{color:'#888580',maxTicksLimit:5},grid:{color:'rgba(255,255,255,.04)'},min:0,max:maxY}
+    }}
+});
+
+new Chart(document.getElementById('chartLow'),chartCfg(lowData,'rgb(248,113,113)'));
+new Chart(document.getElementById('chartOpt'),chartCfg(optData,'rgb(20,184,166)'));
+new Chart(document.getElementById('chartHigh'),chartCfg(highData,'rgb(251,146,60)'));
+
+// Epsilon schedule comparison chart — qualitative shapes only, no exact values
+const eps2=Array.from({length:41},(_,i)=>i*100);
+// Three qualitative decay curves: slow / optimal / fast (shapes only, no labeled values)
+// Use episode value (ep), not array index — decay is per-episode, not per-index
+const epsLow=eps2.map((ep)=>Math.max(0.005,1-0.0002*ep));
+const epsOpt=eps2.map((ep)=>Math.max(0.005,1-0.00055*ep));
+const epsHigh=eps2.map((ep)=>Math.max(0.005,1-0.001*ep));
+new Chart(document.getElementById('chartEpsilon'),{
+  type:'line',
+  data:{labels:eps2,datasets:[
+    {label:'λ too slow',data:epsLow,borderColor:'#f87171',borderWidth:2,pointRadius:0,tension:.1,fill:false},
+    {label:'λ optimal ✓',data:epsOpt,borderColor:'#14b8a6',borderWidth:2.5,pointRadius:0,tension:.1,fill:false},
+    {label:'λ too fast',data:epsHigh,borderColor:'#fb923c',borderWidth:2,pointRadius:0,tension:.1,fill:false},
+    {label:'ε=0.1 threshold',data:Array(41).fill(0.1),borderColor:'rgba(255,255,255,.2)',borderWidth:1,borderDash:[5,3],pointRadius:0,fill:false},
+  ]},
+  options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{display:true,position:'right',labels:{font:{size:9.5},boxWidth:10,padding:10}}},
+    scales:{
+      x:{title:{display:true,text:'Episodes',color:'#888580',font:{size:9}},ticks:{maxTicksLimit:8,color:'#888580'},grid:{color:'rgba(255,255,255,.04)'}},
+      y:{title:{display:true,text:'ε (exploration prob)',color:'#888580',font:{size:9}},ticks:{color:'#888580'},grid:{color:'rgba(255,255,255,.04)'},min:0,max:1}
+    }}
+});
+
+const tp=document.getElementById('tp');
+document.querySelectorAll('[data-tip]').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    tp.style.display='block';tp.innerHTML=el.dataset.tip;
+    let x=e.clientX+14,y=e.clientY-28;
+    if(x+260>window.innerWidth)x=e.clientX-270;
+    if(y<8)y=e.clientY+14;
+    if(y+120>window.innerHeight)y=window.innerHeight-130;
+    tp.style.left=x+'px';tp.style.top=y+'px';
+  });
+  el.addEventListener('mouseleave',()=>{tp.style.display='none';});
+});
+let dark=true;
+function tog(){
+  dark=!dark;document.body.className=dark?'':'light';
+  document.getElementById('tb').textContent=dark?'🌙':'☀️';
+  Chart.defaults.color=dark?'#888580':'#44403c';
+}
+if(window.matchMedia('(prefers-color-scheme: light)').matches)tog();
+</script>
+
+<script>
+(function(){
+  function sendHeight(){
+    var h = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight
+    );
+    window.parent.postMessage({ type:'iframeResize', h:h }, '*');
+  }
+  // Fire after load + short delay (handles JS-rendered SVG content)
+  window.addEventListener('load', function(){ setTimeout(sendHeight, 150); });
+  // Re-fire on any layout change (theme toggle, tooltip open, window resize)
+  if(window.ResizeObserver){
+    new ResizeObserver(sendHeight).observe(document.documentElement);
+  }
+})();
+</script>
+
+</body>
+</html>

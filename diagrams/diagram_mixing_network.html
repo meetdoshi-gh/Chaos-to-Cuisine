@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mixing Network — QMIX Hypernetwork Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+html{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,.15);border-radius:10px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-thumb:hover{background-color:rgba(255,255,255,.3);}
+body{--bg:#0c0b09;--bg2:#1a1714;--ink:#f0ede6;--ink2:#b8b4aa;--ink3:#888580;--bdr:rgba(255,255,255,.10);background:var(--bg);color:var(--ink);margin:0;padding:36px 32px 24px;font-family:'DM Mono',monospace;}
+body.light{--bg:#f5f3ef;--bg2:#ffffff;--ink:#1a1714;--ink2:#44403c;--ink3:#78716c;--bdr:rgba(0,0,0,.12);}
+.btn{position:fixed;top:16px;right:18px;z-index:999;width:38px;height:38px;border-radius:50%;border:1.5px solid var(--bdr);background:var(--bg2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;}
+.btn:hover{transform:scale(1.08);}
+.title-row{display:flex;align-items:center;gap:0;margin-bottom:28px;}
+.tl{flex:1;height:2px;border-radius:1px;background:linear-gradient(90deg,#7B35CC,#DB2777,#EA580C);opacity:.65;}
+.tt{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);padding:0 18px;white-space:nowrap;}
+.outer{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:0;align-items:center;width:100%;max-width:1060px;margin:0 auto;}
+.ac{display:flex;align-items:center;justify-content:center;}
+.block{border-radius:10px;border:1.5px solid;padding:14px 16px;position:relative;cursor:default;}
+.nd-label{font-size:9px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:4px;}
+.nd-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;line-height:1.25;margin-bottom:5px;}
+.nd-sub{font-size:10px;line-height:1.65;}
+.obs{background:#0d1a2e;border-color:#2563EB;}.obs .nd-label{color:#60a5fa;}.obs .nd-title{color:#93c5fd;}.obs .nd-sub{color:#60a5fa;}
+.qval{background:#0d261a;border-color:#059669;}.qval .nd-label{color:#34d399;}.qval .nd-title{color:#6ee7b7;}.qval .nd-sub{color:#34d399;}
+.hyp{background:#2e0f1f;border-color:#DB2777;}.hyp .nd-label{color:#ec4899;}.hyp .nd-title{color:#f9a8d4;}.hyp .nd-sub{color:#ec4899;}
+.mix{background:#1f1200;border-color:#F59E0B;border-width:2.5px;box-shadow:0 0 18px rgba(245,158,11,.38),0 0 42px rgba(245,158,11,.14);}
+.mix .nd-label{color:#fbbf24;}.mix .nd-title{color:#fde68a;}.mix .nd-sub{color:#f59e0b;}
+.out{background:#1a0a1a;border-color:#9333EA;}.out .nd-label{color:#a855f7;}.out .nd-title{color:#d8b4fe;}.out .nd-sub{color:#a855f7;}
+.act-fn{background:rgba(31,26,7,.8);border:1px dashed #D97706;border-radius:8px;text-align:center;padding:9px 12px;}
+.act-fn .fn{color:#fcd34d;font-family:'DM Mono',monospace;font-size:14px;font-weight:600;margin-bottom:3px;}
+.act-fn .note{color:var(--ink3);font-size:9.5px;}
+.gbar{height:2px;border-radius:1px;margin-bottom:8px;background:linear-gradient(90deg,#7B35CC,#DB2777,#EA580C);opacity:.9;}
+.col-stack{display:flex;flex-direction:column;gap:10px;}
+.sp-box{border:1px solid var(--bdr);border-radius:8px;background:var(--bg2);padding:7px 11px;font-size:10px;color:var(--ink2);margin-top:8px;line-height:1.55;}
+.mono-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.4);border-radius:6px;padding:5px 10px;font-size:10px;color:#fde68a;margin-top:8px;}
+
+/* ── Light mode node color overrides ── */
+body.light .obs{background:#eff6ff!important;}
+body.light .obs .nd-label,body.light .obs .k{color:#1e40af!important;}
+body.light .obs .nd-title,body.light .obs .v{color:#1e3a8a!important;}
+body.light .obs .nd-sub,body.light .obs .s{color:#1e40af!important;}
+body.light .qval{background:#ecfdf5!important;}
+body.light .qval .nd-label{color:#065f46!important;}
+body.light .qval .nd-title{color:#022c22!important;}
+body.light .qval .nd-sub{color:#065f46!important;}
+body.light .hyp{background:#fdf2f8!important;}
+body.light .hyp .nd-label,body.light .hyp .k{color:#9d174d!important;}
+body.light .hyp .nd-title,body.light .hyp .v{color:#831843!important;}
+body.light .hyp .nd-sub,body.light .hyp .s{color:#9d174d!important;}
+body.light .mix{background:#fffbeb!important;box-shadow:none!important;}
+body.light .mix .nd-label,body.light .mix .k{color:#92400e!important;}
+body.light .mix .nd-title,body.light .mix .v{color:#451a03!important;}
+body.light .mix .nd-sub,body.light .mix .s{color:#92400e!important;}
+body.light .out{background:#faf5ff!important;}
+body.light .out .nd-label{color:#6b21a8!important;}
+body.light .out .nd-title{color:#3b0764!important;}
+body.light .out .nd-sub{color:#6b21a8!important;}
+body.light .act-fn{background:#f9fafb!important;border-color:#d97706!important;}
+body.light .act-fn .fn{color:#92400e!important;}
+body.light .act-fn .note{color:#78716c!important;}
+body.light .sp-box{background:#f9fafb!important;color:#374151!important;}
+body.light .mono-badge{background:rgba(245,158,11,.12)!important;border-color:rgba(245,158,11,.5)!important;color:#92400e!important;}
+</style>
+</head>
+<body>
+<div id="tp" style="display:none;position:fixed;background:#1a1714;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:10px 13px;font-size:11px;color:#b8b4aa;line-height:1.65;width:250px;z-index:999;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.6)"></div>
+<button class="btn" id="tb" onclick="tog()">🌙</button>
+<div class="title-row">
+  <div class="tl"></div>
+  <span class="tt">Mixing Network — Hypernetwork Architecture & IGM Guarantee</span>
+  <div class="tl" style="background:linear-gradient(90deg,#EA580C,#DB2777,#7B35CC)"></div>
+</div>
+
+<div class="outer">
+  <!-- Col 1: Inputs -->
+  <div class="col-stack">
+    <div class="block obs" data-tip="Joint state z = [s₀; s₁]: concatenation of both agents' 96-dim state vectors giving a 192-dim input. Only available during training — this is the 'centralized' part of CTDE. Conditions all hypernetworks, making mixing weights state-dependent and context-aware.">
+      <div class="nd-label">Central Input</div>
+      <div class="nd-title">z = [s₀; s₁]</div>
+      <div class="nd-sub">192-dim joint state<br>concat of both agents<br>training time only</div>
+    </div>
+    <div class="block qval" data-tip="Individual Q-values for actions actually taken: Q₀(s₀,a₀) and Q₁(s₁,a₁). Gathered from each agent's online DQN using the action index: Q.gather(1, action_idx). Stacked into a (batch, 2) tensor before being fed to the mixing layer.">
+      <div class="nd-label">Agent Q-Values</div>
+      <div class="nd-title">[Q₀, Q₁] ∈ ℝ²</div>
+      <div class="nd-sub">Q for actions taken<br>gathered from DQNs<br>(batch, 2) tensor</div>
+    </div>
+  </div>
+
+  <!-- Arrow 1 -->
+  <div class="ac">
+    <svg width="38" height="48" viewBox="0 0 38 48">
+      <defs>
+        <marker id="a1" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto"><path d="M1,1 L6,3.5 L1,6" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round"/></marker>
+        <marker id="a1b" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto"><path d="M1,1 L6,3.5 L1,6" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round"/></marker>
+      </defs>
+      <line x1="2" y1="14" x2="32" y2="14" stroke="#DB2777" stroke-width="1.8" marker-end="url(#a1)"/>
+      <line x1="2" y1="34" x2="32" y2="34" stroke="#059669" stroke-width="1.8" marker-end="url(#a1b)"/>
+    </svg>
+  </div>
+
+  <!-- Col 2: Hypernetworks -->
+  <div class="col-stack">
+    <div class="block hyp" data-tip="HyperNet 1a: Linear projection of joint state → Softplus (ensures positivity) → reshape to mixing weight matrix W₁ of shape (B, H, N). H = mixing hidden dimension (design choice). Softplus ensures all mixing weights are strictly positive — critical for monotonicity guarantee.">
+      <div class="gbar"></div>
+      <div class="nd-label">HyperNet 1a</div>
+      <div class="nd-title">W₁ generator</div>
+      <div class="nd-sub">Linear(state_dim→·)<br>→ <strong style="color:#fde68a">Softplus ✓</strong><br>→ reshape (B, H, N)</div>
+    </div>
+    <div class="block hyp" data-tip="HyperNet 1b: Linear projection of joint state → bias vector B₁ for mixing layer 1. No activation needed — biases don't appear in ∂Q_tot/∂Qᵢ so non-negativity is not required. Shape: (B, H) — one bias per hidden unit.">
+      <div class="nd-label">HyperNet 1b</div>
+      <div class="nd-title">B₁ generator</div>
+      <div class="nd-sub">Linear(state_dim→H)<br>no activation<br>(B, H) biases</div>
+    </div>
+    <div class="block hyp" data-tip="HyperNet 2a: Linear projection of joint state → Softplus → reshape to W₂ of shape (B, 1, H). Softplus again guarantees positivity. This weight matrix collapses the hidden representation to a scalar Q_tot.">
+      <div class="nd-label">HyperNet 2a</div>
+      <div class="nd-title">W₂ generator</div>
+      <div class="nd-sub">Linear(state_dim→H)<br>→ <strong style="color:#fde68a">Softplus ✓</strong><br>→ reshape (B, 1, H)</div>
+    </div>
+    <div class="block hyp" data-tip="HyperNet 2b: Linear projection of joint state → scalar bias B₂ for the output layer. No activation. State-conditioned global offset improves Q_tot expressivity without violating monotonicity. Shape: (B,1) squeezed per sample.">
+      <div class="nd-label">HyperNet 2b</div>
+      <div class="nd-title">B₂ generator</div>
+      <div class="nd-sub">Linear(state_dim→1)<br>no activation<br>scalar per batch</div>
+    </div>
+  </div>
+
+  <!-- Arrow 2 -->
+  <div class="ac">
+    <svg width="38" height="40" viewBox="0 0 38 40"><defs><marker id="a2" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto"><path d="M1,1 L6,3.5 L1,6" fill="none" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round"/></marker></defs><line x1="2" y1="20" x2="32" y2="20" stroke="#F59E0B" stroke-width="1.8" marker-end="url(#a2)"/></svg>
+  </div>
+
+  <!-- Col 3: Mixing operations -->
+  <div class="col-stack">
+    <div class="block mix" data-tip="Mixing Layer 1: h = ELU(W₁ ⊗ [Q₀;Q₁] + B₁). Batched matrix multiply of state-conditioned weight matrix W₁ against the agent Q-values. Add state-conditioned bias B₁. Apply ELU — smooth, differentiable everywhere, no dead neurons. Output h is a state-dependent hidden team representation.">
+      <div class="gbar"></div>
+      <div class="nd-label">Layer 1 · Mixing</div>
+      <div class="nd-title">h = ELU(W₁⊗q + B₁)</div>
+      <div class="nd-sub">bmm: W₁·[Q₀;Q₁]<br>→ (B,H) + bias<br>→ ELU → h ∈ ℝᴴ</div>
+    </div>
+    <div class="act-fn" data-tip="ELU activation (Exponential Linear Unit): f(x) = x if x>0, else α(e^x − 1). Chosen over ReLU for smoother gradient flow and non-zero gradients for negative inputs. Important because Q-values can be negative — ReLU would incorrectly zero out useful information.">
+      <div class="fn">ELU</div>
+      <div class="note">smooth · no dead neurons<br>negative Q-values preserved</div>
+    </div>
+    <div class="block mix" data-tip="Output Layer: Q_tot = W₂ ⊗ h + B₂. Batched matmul of W₂ against hidden rep h — collapses to scalar per batch item. Add state-conditioned scalar bias B₂. No output activation; Q_tot can be any real value.">
+      <div class="nd-label">Layer 2 · Output</div>
+      <div class="nd-title">Q_tot = W₂⊗h + B₂</div>
+      <div class="nd-sub">bmm: W₂·h<br>→ (B,1) + scalar B₂<br>→ squeeze → Q_tot</div>
+    </div>
+  </div>
+
+  <!-- Arrow 3 -->
+  <div class="ac">
+    <svg width="38" height="40" viewBox="0 0 38 40"><defs><marker id="a3" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto"><path d="M1,1 L6,3.5 L1,6" fill="none" stroke="#9333EA" stroke-width="1.8" stroke-linecap="round"/></marker></defs><line x1="2" y1="20" x2="32" y2="20" stroke="#9333EA" stroke-width="1.8" marker-end="url(#a3)"/></svg>
+  </div>
+
+  <!-- Col 4: Output -->
+  <div class="col-stack">
+    <div class="block out" data-tip="Q_tot ∈ ℝ: scalar centralized action-value representing expected team return for joint action (a₀,a₁) in state (s₀,s₁). Used to compute Smooth L1 Bellman loss against target Q_tot. Gradient flows back through this scalar into both the mixing network and both agent DQNs.">
+      <div class="gbar" style="background:linear-gradient(90deg,#9333EA,#A855F7,#C084FC)"></div>
+      <div class="nd-label">Output</div>
+      <div class="nd-title">Q_tot ∈ ℝ</div>
+      <div class="nd-sub">scalar per step<br>centralized value<br>Bellman TD target</div>
+    </div>
+    <div class="mono-badge" data-tip="Monotonicity proof: W₁ ≥ 0 and W₂ ≥ 0 (both from Softplus). Therefore ∂Q_tot/∂Q_i = W₂ · diag(ELU'(·)) · W₁[:,i] > 0 everywhere. Strictly positive because Softplus outputs are strictly positive and ELU' ≥ 0. IGM holds architecturally — not empirically.">
+      <span>⚡</span>
+      <span>∂Q_tot/∂Qᵢ &gt; 0 · IGM Guaranteed</span>
+    </div>
+    <div class="sp-box" data-tip="Implementation choice: Softplus replaces original paper's absolute value. Original QMIX (Rashid et al. 2018) uses |HyperNet(z)| for non-negativity. Softplus = log(1+e^x) is differentiable everywhere (|x| has undefined gradient at 0), provides gradient magnitude signal, and prevents the zero-gradient dead zone.">
+      <strong style="color:#fde68a">Softplus vs. |·|</strong><br>
+      Original uses hard |·| — zero gradient region at 0. This implementation uses Softplus — smooth, differentiable, strictly positive gradient signal throughout training.
+    </div>
+  </div>
+</div>
+
+<!-- Footer equation summary -->
+<div style="max-width:1060px;margin:20px auto 0;background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.18);border-radius:10px;padding:14px 18px;">
+  <div style="font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#fbbf24;margin-bottom:10px;">Full Forward Pass — Matrix Form</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;font-size:11px;color:var(--ink2);line-height:1.8;">
+    <div><span style="color:#f9a8d4">W₁</span> = Softplus(HN₁ₐ(z)) ∈ ℝ^(B×64×2)</div>
+    <div><span style="color:#f9a8d4">B₁</span> = HN₁ᵦ(z) ∈ ℝ^(B×64)</div>
+    <div><span style="color:#fbbf24">h</span> = ELU(bmm(W₁,[Q₀;Q₁]) + B₁) ∈ ℝ^(B×64)</div>
+    <div><span style="color:#f9a8d4">W₂</span> = Softplus(HN₂ₐ(z)) ∈ ℝ^(B×1×64)</div>
+    <div><span style="color:#f9a8d4">B₂</span> = HN₂ᵦ(z) ∈ ℝ^(B×1)</div>
+    <div><span style="color:#d8b4fe">Q_tot</span> = squeeze(bmm(W₂,h) + B₂) ∈ ℝ^(B)</div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div style="display:flex;align-items:center;gap:13px;flex-wrap:wrap;padding-top:14px;margin-top:18px;border-top:1px solid var(--bdr);font-size:9.5px;color:var(--ink3);max-width:1060px;margin-left:auto;margin-right:auto;">
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#2563EB"></div>Inputs</div>
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#059669"></div>Agent Q-values</div>
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#DB2777"></div>Hypernetworks</div>
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#F59E0B"></div>Mixing Ops (novel)</div>
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#9333EA"></div>Output Q_tot</div>
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#D97706;opacity:.7"></div>Activations</div>
+  <span style="margin-left:auto;font-size:9px">meetdoshi.me · Chaos to Cuisine · Mixing Network</span>
+</div>
+
+<script>
+const tp=document.getElementById('tp');
+document.querySelectorAll('[data-tip]').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    tp.style.display='block';tp.innerHTML=el.dataset.tip;
+    let x=e.clientX+14,y=e.clientY-28;
+    if(x+260>window.innerWidth)x=e.clientX-270;
+    if(y<8)y=e.clientY+14;
+    if(y+120>window.innerHeight)y=window.innerHeight-130;
+    tp.style.left=x+'px';tp.style.top=y+'px';
+  });
+  el.addEventListener('mouseleave',()=>{tp.style.display='none';});
+});
+let dark=true;
+function tog(){dark=!dark;document.body.className=dark?'':'light';document.getElementById('tb').textContent=dark?'🌙':'☀️';}
+if(window.matchMedia('(prefers-color-scheme: light)').matches)tog();
+</script>
+
+<script>
+(function(){
+  function sendHeight(){
+    var h = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight
+    );
+    window.parent.postMessage({ type:'iframeResize', h:h }, '*');
+  }
+  // Fire after load + short delay (handles JS-rendered SVG content)
+  window.addEventListener('load', function(){ setTimeout(sendHeight, 150); });
+  // Re-fire on any layout change (theme toggle, tooltip open, window resize)
+  if(window.ResizeObserver){
+    new ResizeObserver(sendHeight).observe(document.documentElement);
+  }
+})();
+</script>
+
+</body>
+</html>

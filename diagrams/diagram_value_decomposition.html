@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Value Decomposition & IGM — QMIX</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+html{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,.15);border-radius:10px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-thumb:hover{background-color:rgba(255,255,255,.3);}
+body{--bg:#0c0b09;--bg2:#1a1714;--ink:#f0ede6;--ink2:#b8b4aa;--ink3:#888580;--bdr:rgba(255,255,255,.10);background:var(--bg);color:var(--ink);margin:0;padding:36px 32px 28px;font-family:'DM Mono',monospace;}
+body.light{--bg:#f5f3ef;--bg2:#ffffff;--ink:#1a1714;--ink2:#44403c;--ink3:#78716c;--bdr:rgba(0,0,0,.12);}
+.btn{position:fixed;top:16px;right:18px;z-index:999;width:38px;height:38px;border-radius:50%;border:1.5px solid var(--bdr);background:var(--bg2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;}
+.btn:hover{transform:scale(1.08);}
+.title-row{display:flex;align-items:center;gap:0;margin-bottom:22px;}
+.tl{flex:1;height:2px;border-radius:1px;background:linear-gradient(90deg,#7B35CC,#DB2777,#EA580C,#F59E0B);opacity:.65;}
+.tt{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);padding:0 18px;white-space:nowrap;}
+.panels{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+.panel{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:16px 18px;cursor:default;}
+.panel-label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:4px;}
+.panel-title{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;margin-bottom:6px;}
+.panel-desc{font-size:10.5px;color:var(--ink2);line-height:1.65;margin-bottom:14px;}
+.eq-box{background:rgba(255,255,255,.04);border:1px solid var(--bdr);border-radius:7px;padding:8px 12px;font-size:11px;color:var(--ink);line-height:1.7;margin-bottom:10px;}
+/* VDN panel */
+.p-vdn{border-color:rgba(100,116,139,.4);}.p-vdn .panel-label{color:#94a3b8;}.p-vdn .panel-title{color:#cbd5e1;}
+/* QMIX panel */
+.p-qmix{border-color:#F59E0B;box-shadow:0 0 18px rgba(245,158,11,.2);}.p-qmix .panel-label{color:#fbbf24;}.p-qmix .panel-title{color:#fde68a;}
+/* Violation panel */
+.p-viol{border-color:rgba(220,38,38,.4);}.p-viol .panel-label{color:#f87171;}.p-viol .panel-title{color:#fca5a5;}
+.igm-grid{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:18px 20px;margin-bottom:20px;}
+.igm-title{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink3);margin-bottom:14px;}
+.igm-row{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--bdr);}
+.igm-row:last-child{border-bottom:none;}
+.igm-algo{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;min-width:80px;}
+.igm-bar-wrap{background:rgba(255,255,255,.05);border-radius:4px;height:14px;position:relative;overflow:hidden;}
+.igm-bar{height:100%;border-radius:4px;transition:width .4s ease;}
+.igm-verdict{font-size:10px;font-weight:600;min-width:120px;text-align:right;}
+.deriv-section{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);border-radius:10px;padding:14px 18px;}
+.deriv-title{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#fbbf24;margin-bottom:12px;}
+.deriv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;}
+.deriv-step{background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:11px 13px;}
+.step-num{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px;}
+.step-eq{font-size:11px;color:var(--ink);line-height:1.7;margin-bottom:4px;}
+.step-note{font-size:10px;color:var(--ink2);}
+
+/* ── Light mode node color overrides ── */
+body.light .obs{background:#eff6ff!important;}
+body.light .obs .nd-label,body.light .obs .k{color:#1e40af!important;}
+body.light .obs .nd-title,body.light .obs .v{color:#1e3a8a!important;}
+body.light .obs .nd-sub,body.light .obs .s{color:#1e40af!important;}
+body.light .hyp{background:#fdf2f8!important;}
+body.light .hyp .nd-label,body.light .hyp .k{color:#9d174d!important;}
+body.light .hyp .nd-title,body.light .hyp .v{color:#831843!important;}
+body.light .hyp .nd-sub,body.light .hyp .s{color:#9d174d!important;}
+body.light .mix{background:#fffbeb!important;box-shadow:none!important;}
+body.light .mix .nd-label,body.light .mix .k{color:#92400e!important;}
+body.light .mix .nd-title,body.light .mix .v{color:#451a03!important;}
+body.light .mix .nd-sub,body.light .mix .s{color:#92400e!important;}
+body.light .qx-core{background:#fffbeb!important;box-shadow:none!important;}
+body.light .qx-core .k{color:#92400e!important;}
+body.light .qx-core .v{color:#451a03!important;}
+body.light .qx-pro{background:#ecfdf5!important;}
+body.light .qx-pro .k{color:#065f46!important;}
+body.light .qx-pro .v{color:#022c22!important;}
+body.light .qx-trade{background:#fffbeb!important;}
+body.light .qx-trade .k{color:#92400e!important;}
+body.light .qx-trade .v{color:#451a03!important;}
+body.light .sl{background:#f8fafc!important;border-color:#4B5563!important;}
+body.light .sl .k{color:#374151!important;}
+body.light .sl .v{color:#111827!important;}
+body.light .sl .d,body.light .sl .s{color:#44403c!important;}
+body.light .sl-con,body.light .ma-con{background:#fff5f5!important;border-color:#DC2626!important;}
+body.light .sl-con .k,body.light .ma-con .k{color:#991b1b!important;}
+body.light .sl-con .v,body.light .ma-con .v{color:#7f1d1d!important;}
+body.light .sl-con .d,body.light .ma-con .d{color:#44403c!important;}
+body.light .out{background:#faf5ff!important;}
+body.light .out .nd-label,body.light .out .k{color:#6b21a8!important;}
+body.light .out .nd-title,body.light .out .v{color:#3b0764!important;}
+body.light .out .nd-sub,body.light .out .s{color:#6b21a8!important;}
+body.light .p-vdn{background:#f8fafc!important;border-color:#475569!important;}
+body.light .p-vdn .panel-label{color:#475569!important;}
+body.light .p-vdn .panel-title{color:#1e293b!important;}
+body.light .p-qmix{background:#fffbeb!important;box-shadow:none!important;}
+body.light .p-qmix .panel-label{color:#92400e!important;}
+body.light .p-qmix .panel-title{color:#451a03!important;}
+body.light .p-viol{background:#fff5f5!important;}
+body.light .p-viol .panel-label{color:#991b1b!important;}
+body.light .p-viol .panel-title{color:#7f1d1d!important;}
+body.light .sp-box{background:#f9fafb!important;color:#374151!important;}
+body.light .igm-grid,body.light .deriv-step,body.light .hp-card{background:var(--bg2)!important;}
+body.light .nd .d,body.light .nd .nd-sub,body.light .nd .s{color:var(--ink2)!important;}
+body.light .act-fn{background:#f9fafb!important;border-color:#d97706!important;}
+body.light .act-fn .fn{color:#92400e!important;}
+body.light .cpanel{background:var(--bg2)!important;}
+body.light .cp-low{border-color:#f87171!important;}
+body.light .cp-opt{border-color:#14b8a6!important;box-shadow:none!important;}
+body.light .cp-high{border-color:#fb923c!important;}
+</style>
+</head>
+<body>
+<div id="tp" style="display:none;position:fixed;background:#1a1714;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:10px 13px;font-size:11px;color:#b8b4aa;line-height:1.65;width:250px;z-index:999;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.6)"></div>
+<button class="btn" id="tb" onclick="tog()">🌙</button>
+<div class="title-row">
+  <div class="tl"></div>
+  <span class="tt">Value Decomposition & IGM — From VDN to QMIX</span>
+  <div class="tl" style="background:linear-gradient(90deg,#F59E0B,#DB2777,#7B35CC)"></div>
+</div>
+
+<!-- Three panels side by side -->
+<div class="panels">
+  <!-- VDN -->
+  <div class="panel p-vdn" data-tip="VDN (Value Decomposition Networks, Sunehag 2018): assumes Q_tot decomposes as a simple sum of individual Q_i. Full factorization naturally satisfies IGM but is too restrictive — agents' contributions in complex tasks are rarely linearly separable. QMIX generalizes VDN by allowing any monotonic mixing function.">
+    <div class="panel-label">Predecessor</div>
+    <div class="panel-title">VDN</div>
+    <div class="panel-desc">Linear decomposition: Q_tot is the sum of individual utilities. Simple, guaranteed to satisfy IGM, but too restrictive for non-linear agent interactions.</div>
+    <div class="eq-box">Q_tot = Q₁(s₁,a₁) + Q₂(s₂,a₂)<br><span style="color:var(--ink3);font-size:10px">Linear · satisfies IGM<br>but limited expressivity</span></div>
+    <svg viewBox="0 0 200 120" width="100%" style="display:block;">
+      <!-- Flat plane in 2D projection of Q1 x Q2 space -->
+      <defs>
+        <linearGradient id="vdnGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#475569" stop-opacity=".7"/>
+          <stop offset="100%" stop-color="#64748b" stop-opacity=".3"/>
+        </linearGradient>
+      </defs>
+      <!-- Axes -->
+      <line x1="20" y1="100" x2="190" y2="100" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+      <line x1="20" y1="100" x2="20" y2="10" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+      <text x="150" y="115" font-size="9" fill="#94a3b8" font-family="DM Mono">Q₁ →</text>
+      <text x="3" y="50" font-size="9" fill="#94a3b8" font-family="DM Mono" transform="rotate(-90,12,55)">Q₂</text>
+      <!-- Flat linear surface (VDN = flat tilted plane) -->
+      <polygon points="30,90 90,75 190,55 130,70" fill="url(#vdnGrad)" stroke="#64748b" stroke-width="1"/>
+      <!-- Contour lines (equally spaced = linear) -->
+      <line x1="30" y1="90" x2="120" y2="80" stroke="rgba(100,116,139,.5)" stroke-width=".8" stroke-dasharray="3,2"/>
+      <line x1="50" y1="85" x2="140" y2="73" stroke="rgba(100,116,139,.5)" stroke-width=".8" stroke-dasharray="3,2"/>
+      <line x1="70" y1="79" x2="160" y2="66" stroke="rgba(100,116,139,.5)" stroke-width=".8" stroke-dasharray="3,2"/>
+      <!-- Optimal point -->
+      <circle cx="175" cy="57" r="5" fill="#94a3b8" stroke="#cbd5e1" stroke-width="1.5"/>
+      <text x="145" y="45" font-size="8.5" fill="#cbd5e1" font-family="DM Mono">argmax</text>
+      <text x="12" y="110" font-size="8" fill="#64748b" font-family="DM Mono">flat plane (linear)</text>
+    </svg>
+  </div>
+
+  <!-- QMIX -->
+  <div class="panel p-qmix" data-tip="QMIX: Q_tot is any monotonic function of individual Q_i values. The mixing network learns this function. Monotonicity constraint (∂Q_tot/∂Qᵢ > 0) is enforced via non-negative mixing weights — allowing non-linear mixing while preserving IGM. More expressive than VDN, still decomposes correctly.">
+    <div class="panel-label">This Implementation ✓</div>
+    <div class="panel-title">QMIX</div>
+    <div class="panel-desc">Arbitrary monotonic mixing: Q_tot can be any function of Q₁, Q₂ as long as it is strictly increasing in each argument. Non-negative mixing weights enforce this.</div>
+    <div class="eq-box">Q_tot = f_mix(Q₁, Q₂; z)<br>subject to: ∂Q_tot/∂Qᵢ &gt; 0<br><span style="color:#fbbf24;font-size:10px">Curved surface · IGM guaranteed ✓</span></div>
+    <svg viewBox="0 0 200 120" width="100%" style="display:block;">
+      <defs>
+        <linearGradient id="qmixGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#f59e0b" stop-opacity=".5"/>
+          <stop offset="100%" stop-color="#ea580c" stop-opacity=".2"/>
+        </linearGradient>
+      </defs>
+      <line x1="20" y1="100" x2="190" y2="100" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+      <line x1="20" y1="100" x2="20" y2="10" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+      <text x="150" y="115" font-size="9" fill="#fbbf24" font-family="DM Mono">Q₁ →</text>
+      <text x="3" y="50" font-size="9" fill="#fbbf24" font-family="DM Mono" transform="rotate(-90,12,55)">Q₂</text>
+      <!-- Curved surface (QMIX = non-linear but monotone) -->
+      <path d="M 30,95 C 60,88 90,70 130,52 C 160,38 180,28 190,22" stroke="#F59E0B" stroke-width="2" fill="none"/>
+      <path d="M 30,88 C 65,80 100,60 140,42 C 165,30 185,22 195,18" stroke="#fbbf24" stroke-width="1" fill="none" stroke-dasharray="3,2" opacity=".5"/>
+      <path d="M 30,78 C 60,68 100,50 145,35" stroke="#fbbf24" stroke-width="1" fill="none" stroke-dasharray="3,2" opacity=".4"/>
+      <!-- Gradient indicator arrows showing ∂Q_tot/∂Qi > 0 -->
+      <line x1="60" y1="88" x2="80" y2="82" stroke="rgba(245,158,11,.7)" stroke-width="1.3"/>
+      <polygon points="80,82 76,78 84,80" fill="#f59e0b" opacity=".7"/>
+      <line x1="100" y1="70" x2="120" y2="60" stroke="rgba(245,158,11,.7)" stroke-width="1.3"/>
+      <polygon points="120,60 116,56 124,58" fill="#f59e0b" opacity=".7"/>
+      <line x1="145" y1="50" x2="165" y2="37" stroke="rgba(245,158,11,.7)" stroke-width="1.3"/>
+      <polygon points="165,37 161,33 169,35" fill="#f59e0b" opacity=".7"/>
+      <!-- Optimal point (top-right = high Q₁ and high Q₂) -->
+      <circle cx="186" cy="22" r="6" fill="#f59e0b" stroke="#fde68a" stroke-width="1.5"/>
+      <text x="10" y="110" font-size="8" fill="#fbbf24" font-family="DM Mono">curved + monotone</text>
+    </svg>
+  </div>
+
+  <!-- Violation -->
+  <div class="panel p-viol" data-tip="Non-monotonic violation: if ∂Q_tot/∂Qᵢ < 0 somewhere, then increasing agent i's individual utility would decrease the team value — meaning greedy local action selection would actively harm the team. IGM breaks: the joint argmax cannot be found by independent greedy maximization.">
+    <div class="panel-label">Violation — What Breaks IGM</div>
+    <div class="panel-title">Non-Monotonic</div>
+    <div class="panel-desc">If the mixing function decreases in any Qᵢ direction, greedy local action selection no longer produces the global optimum. IGM fails — joint optimization is required.</div>
+    <div class="eq-box">∃ Qᵢ: ∂Q_tot/∂Qᵢ &lt; 0<br><span style="color:#f87171;font-size:10px">IGM breaks · can't execute<br>greedily → correct</span></div>
+    <svg viewBox="0 0 200 120" width="100%" style="display:block;">
+      <defs>
+        <linearGradient id="violGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#dc2626" stop-opacity=".3"/>
+          <stop offset="100%" stop-color="#7f1d1d" stop-opacity=".1"/>
+        </linearGradient>
+      </defs>
+      <line x1="20" y1="100" x2="190" y2="100" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+      <line x1="20" y1="100" x2="20" y2="10" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+      <text x="150" y="115" font-size="9" fill="#f87171" font-family="DM Mono">Q₁ →</text>
+      <text x="3" y="50" font-size="9" fill="#f87171" font-family="DM Mono" transform="rotate(-90,12,55)">Q₂</text>
+      <!-- Non-monotonic surface (local max that is not at corner) -->
+      <path d="M 30,85 C 60,65 95,35 110,28 C 125,35 145,60 180,80" stroke="#DC2626" stroke-width="2" fill="none"/>
+      <path d="M 30,75 C 55,58 90,30 112,22 C 130,28 155,50 185,72" stroke="#f87171" stroke-width="1" fill="none" stroke-dasharray="3,2" opacity=".5"/>
+      <!-- Local max in middle (NOT at corner) -->
+      <circle cx="110" cy="28" r="6" fill="#dc2626" stroke="#f87171" stroke-width="1.5"/>
+      <text x="88" y="20" font-size="8" fill="#fca5a5" font-family="DM Mono">local max</text>
+      <!-- Corner (high Q1, high Q2) is worse — violates IGM -->
+      <circle cx="182" cy="80" r="5" fill="none" stroke="#f87171" stroke-width="1.5" stroke-dasharray="2,1"/>
+      <text x="152" y="95" font-size="8" fill="#f87171" font-family="DM Mono">greedy → here</text>
+      <!-- X marks showing wrong greedy choices -->
+      <text x="165" y="78" font-size="12" fill="#f87171" font-family="DM Mono">✗</text>
+      <text x="10" y="110" font-size="8" fill="#f87171" font-family="DM Mono">greedy ≠ global opt</text>
+    </svg>
+  </div>
+</div>
+
+<!-- IGM property: what it means for execution -->
+<div class="igm-grid" data-tip="The IGM property comparison across algorithms. QMIX achieves 100% IGM satisfaction by construction. VDN achieves it via linear sum. MAPPO has no guarantee — IGM satisfaction is a product of training, not architecture.">
+  <div class="igm-title">IGM Satisfaction — By Algorithm</div>
+  <div class="igm-row">
+    <div class="igm-algo" style="color:#fde68a">QMIX</div>
+    <div class="igm-bar-wrap"><div class="igm-bar" style="width:100%;background:linear-gradient(90deg,#f59e0b,#fde68a)"></div></div>
+    <div class="igm-verdict" style="color:#6ee7b7">100% — architectural guarantee</div>
+  </div>
+  <div class="igm-row">
+    <div class="igm-algo" style="color:#cbd5e1">VDN</div>
+    <div class="igm-bar-wrap"><div class="igm-bar" style="width:100%;background:linear-gradient(90deg,#475569,#94a3b8)"></div></div>
+    <div class="igm-verdict" style="color:#6ee7b7">100% — inherent (linear sum)</div>
+  </div>
+  <div class="igm-row">
+    <div class="igm-algo" style="color:#fca5a5">MAPPO</div>
+    <div class="igm-bar-wrap"><div class="igm-bar" style="width:55%;background:linear-gradient(90deg,#dc2626,#f87171)"></div></div>
+    <div class="igm-verdict" style="color:#f87171">~55% — statistical, not guaranteed</div>
+  </div>
+  <div class="igm-row">
+    <div class="igm-algo" style="color:#fca5a5">MADDPG</div>
+    <div class="igm-bar-wrap"><div class="igm-bar" style="width:40%;background:linear-gradient(90deg,#7f1d1d,#dc2626)"></div></div>
+    <div class="igm-verdict" style="color:#f87171">~40% — no mechanism for IGM</div>
+  </div>
+</div>
+
+<!-- Monotonicity derivation -->
+<div class="deriv-section" data-tip="The full mathematical chain showing how Softplus on hypernetwork outputs guarantees strict monotonicity of Q_tot with respect to each Qᵢ.">
+  <div class="deriv-title">⚡ Monotonicity Guarantee — Full Derivation Chain</div>
+  <div class="deriv-grid">
+    <div class="deriv-step">
+      <div class="step-num">Step 1 · Softplus on weights</div>
+      <div class="step-eq">W₁ = Softplus(HN₁(z)) ≥ 0<br>W₂ = Softplus(HN₂(z)) ≥ 0</div>
+      <div class="step-note">All mixing weights strictly non-negative by construction</div>
+    </div>
+    <div class="deriv-step">
+      <div class="step-num">Step 2 · ELU derivative</div>
+      <div class="step-eq">ELU'(x) ≥ 0 for all x<br>ELU'(x) = 1 if x≥0, else e^x &gt; 0</div>
+      <div class="step-note">Non-negative activation derivative everywhere</div>
+    </div>
+    <div class="deriv-step">
+      <div class="step-num">Step 3 · Chain rule</div>
+      <div class="step-eq">∂Q_tot/∂Qᵢ = W₂ · diag(ELU') · W₁[:,i]</div>
+      <div class="step-note">Product of three non-negative quantities</div>
+    </div>
+    <div class="deriv-step" style="border-color:#F59E0B;box-shadow:0 0 10px rgba(245,158,11,.15);">
+      <div class="step-num" style="color:#fbbf24;">Result · IGM Guaranteed ✓</div>
+      <div class="step-eq" style="color:#fde68a;">∂Q_tot/∂Qᵢ &gt; 0 for all i, always</div>
+      <div class="step-note">Not a training objective — a mathematical fact about the network's structure</div>
+    </div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div style="display:flex;align-items:center;gap:13px;flex-wrap:wrap;padding-top:14px;margin-top:18px;border-top:1px solid var(--bdr);font-size:9.5px;color:var(--ink3);">
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#475569"></div>VDN (linear predecessor)</div>
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#F59E0B"></div>QMIX (monotonic mixing)</div>
+  <div style="display:flex;align-items:center;gap:5px;"><div style="width:9px;height:9px;border-radius:2px;background:#DC2626"></div>Non-monotonic violation</div>
+  <span style="margin-left:auto;font-size:9px">meetdoshi.me · Chaos to Cuisine · Value Decomposition & IGM</span>
+</div>
+
+<script>
+const tp=document.getElementById('tp');
+document.querySelectorAll('[data-tip]').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    tp.style.display='block';tp.innerHTML=el.dataset.tip;
+    let x=e.clientX+14,y=e.clientY-28;
+    if(x+260>window.innerWidth)x=e.clientX-270;
+    if(y<8)y=e.clientY+14;
+    if(y+120>window.innerHeight)y=window.innerHeight-130;
+    tp.style.left=x+'px';tp.style.top=y+'px';
+  });
+  el.addEventListener('mouseleave',()=>{tp.style.display='none';});
+});
+let dark=true;
+function tog(){dark=!dark;document.body.className=dark?'':'light';document.getElementById('tb').textContent=dark?'🌙':'☀️';}
+if(window.matchMedia('(prefers-color-scheme: light)').matches)tog();
+</script>
+
+<script>
+(function(){
+  function sendHeight(){
+    var h = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight
+    );
+    window.parent.postMessage({ type:'iframeResize', h:h }, '*');
+  }
+  // Fire after load + short delay (handles JS-rendered SVG content)
+  window.addEventListener('load', function(){ setTimeout(sendHeight, 150); });
+  // Re-fire on any layout change (theme toggle, tooltip open, window resize)
+  if(window.ResizeObserver){
+    new ResizeObserver(sendHeight).observe(document.documentElement);
+  }
+})();
+</script>
+
+</body>
+</html>

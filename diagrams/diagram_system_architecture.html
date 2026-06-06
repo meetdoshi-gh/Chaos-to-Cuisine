@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>QMIX System Architecture — CTDE</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+html{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent;}
+::-webkit-scrollbar{width:8px;height:8px;}::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,.15);border-radius:10px;border:2px solid transparent;background-clip:padding-box;}
+body{
+  --bg:#0c0b09;--bg2:#1a1714;--ink:#f0ede6;--ink2:#b8b4aa;--ink3:#888580;--bdr:rgba(255,255,255,.10);
+  --c-env-bg:#071a10;--c-env-bd:#059669;--c-env-k:#34d399;--c-env-v:#6ee7b7;
+  --c-obs-bg:#070d1a;--c-obs-bd:#2563EB;--c-obs-k:#60a5fa;--c-obs-v:#93c5fd;
+  --c-dqn-bg:#200e03;--c-dqn-bd:#EA580C;--c-dqn-k:#f97316;--c-dqn-v:#fdba74;
+  --c-tgt-bg:#110600;--c-tgt-bd:rgba(234,88,12,.32);--c-tgt-k:rgba(249,115,22,.48);--c-tgt-v:rgba(253,186,116,.48);
+  --c-mix-bg:#1f1200;--c-mix-bd:#F59E0B;--c-mix-k:#fbbf24;--c-mix-v:#fde68a;
+  --c-qtot-bg:#13071a;--c-qtot-bd:#9333EA;--c-qtot-k:#a855f7;--c-qtot-v:#d8b4fe;
+  --c-loss-bg:#0e071c;--c-loss-bd:#7B35CC;--c-loss-k:#a78bfa;--c-loss-v:#c4b5fd;
+  --c-buf-bg:#1a0713;--c-buf-bd:#DB2777;--c-buf-k:#ec4899;--c-buf-v:#f9a8d4;
+  --c-exec-bg:#071a10;--c-exec-bd:rgba(5,150,105,.4);--c-exec-k:rgba(52,211,153,.6);--c-exec-v:rgba(110,231,183,.6);
+  background:var(--bg);color:var(--ink);margin:0;padding:28px 24px 22px;font-family:'DM Mono',monospace;
+}
+body.light{
+  --bg:#f5f3ef;--bg2:#ffffff;--ink:#1a1714;--ink2:#44403c;--ink3:#78716c;--bdr:rgba(0,0,0,.12);
+  --c-env-bg:#e6f7ef;--c-env-bd:#059669;--c-env-k:#065f46;--c-env-v:#022c22;
+  --c-obs-bg:#eff6ff;--c-obs-bd:#2563EB;--c-obs-k:#1e40af;--c-obs-v:#1e3a8a;
+  --c-dqn-bg:#fff7ed;--c-dqn-bd:#EA580C;--c-dqn-k:#c2410c;--c-dqn-v:#7c2d12;
+  --c-tgt-bg:#fef3e2;--c-tgt-bd:rgba(234,88,12,.38);--c-tgt-k:rgba(194,65,12,.55);--c-tgt-v:rgba(124,45,18,.55);
+  --c-mix-bg:#fffbeb;--c-mix-bd:#d97706;--c-mix-k:#92400e;--c-mix-v:#451a03;
+  --c-qtot-bg:#faf5ff;--c-qtot-bd:#9333EA;--c-qtot-k:#6b21a8;--c-qtot-v:#3b0764;
+  --c-loss-bg:#f5f3ff;--c-loss-bd:#7B35CC;--c-loss-k:#5b21b6;--c-loss-v:#2e1065;
+  --c-buf-bg:#fdf2f8;--c-buf-bd:#DB2777;--c-buf-k:#9d174d;--c-buf-v:#500724;
+  --c-exec-bg:#e6f7ef;--c-exec-bd:rgba(5,150,105,.5);--c-exec-k:#065f46;--c-exec-v:#022c22;
+}
+.btn{position:fixed;top:16px;right:18px;z-index:999;width:38px;height:38px;border-radius:50%;border:1.5px solid var(--bdr);background:var(--bg2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;}
+.title-row{display:flex;align-items:center;gap:0;margin-bottom:16px;}
+.tl{flex:1;height:2px;border-radius:1px;background:linear-gradient(90deg,#059669,#2563EB,#EA580C,#F59E0B,#9333EA);opacity:.7;}
+.tt{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);padding:0 16px;white-space:nowrap;}
+.phase-pill{font-size:9px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;padding:4px 12px;border-radius:5px;display:inline-block;margin-bottom:10px;}
+.p-train{background:rgba(234,88,12,.12);color:#f97316;border:1px solid rgba(234,88,12,.3);}
+.p-exec{background:rgba(5,150,105,.12);color:#34d399;border:1px solid rgba(5,150,105,.3);}
+/* SVG node styles via CSS vars */
+svg .env-rect{fill:var(--c-env-bg);stroke:var(--c-env-bd);}
+svg .env-lbl{fill:var(--c-env-k);}  svg .env-ttl{fill:var(--c-env-v);}  svg .env-sub{fill:var(--c-env-k);}
+svg .obs-rect{fill:var(--c-obs-bg);stroke:var(--c-obs-bd);}
+svg .obs-lbl{fill:var(--c-obs-k);}  svg .obs-ttl{fill:var(--c-obs-v);}  svg .obs-sub{fill:var(--c-obs-k);}
+svg .dqn-rect{fill:var(--c-dqn-bg);stroke:var(--c-dqn-bd);}
+svg .dqn-lbl{fill:var(--c-dqn-k);}  svg .dqn-ttl{fill:var(--c-dqn-v);}  svg .dqn-sub{fill:var(--c-dqn-k);}
+svg .tgt-rect{fill:var(--c-tgt-bg);stroke:var(--c-tgt-bd);}
+svg .tgt-lbl{fill:var(--c-tgt-k);}  svg .tgt-ttl{fill:var(--c-tgt-v);}  svg .tgt-sub{fill:var(--c-tgt-k);}
+svg .mix-rect{fill:var(--c-mix-bg);stroke:var(--c-mix-bd);}
+svg .mix-lbl{fill:var(--c-mix-k);}  svg .mix-ttl{fill:var(--c-mix-v);}  svg .mix-sub{fill:var(--c-mix-k);}
+svg .qtot-rect{fill:var(--c-qtot-bg);stroke:var(--c-qtot-bd);}
+svg .qtot-lbl{fill:var(--c-qtot-k);}  svg .qtot-ttl{fill:var(--c-qtot-v);}  svg .qtot-sub{fill:var(--c-qtot-k);}
+svg .loss-rect{fill:var(--c-loss-bg);stroke:var(--c-loss-bd);}
+svg .loss-lbl{fill:var(--c-loss-k);}  svg .loss-ttl{fill:var(--c-loss-v);}  svg .loss-sub{fill:var(--c-loss-k);}
+svg .buf-rect{fill:var(--c-buf-bg);stroke:var(--c-buf-bd);}
+svg .buf-lbl{fill:var(--c-buf-k);}  svg .buf-ttl{fill:var(--c-buf-v);}  svg .buf-sub{fill:var(--c-buf-k);}
+svg text{font-family:'DM Mono',monospace;}
+svg .lbl{font-size:8px;letter-spacing:.17em;}
+svg .ttl{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;}
+svg .sub{font-size:9.5px;}
+svg .al{font-size:8.5px;font-family:'DM Mono',monospace;}
+</style>
+</head>
+<body>
+<div id="tp" style="display:none;position:fixed;background:#1a1714;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:10px 13px;font-size:11px;color:#b8b4aa;line-height:1.65;width:240px;z-index:999;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.6)"></div>
+<button class="btn" id="tb" onclick="tog()">🌙</button>
+
+<div class="title-row">
+  <div class="tl"></div>
+  <span class="tt">QMIX System Architecture — Centralized Training · Decentralized Execution</span>
+  <div class="tl" style="background:linear-gradient(90deg,#9333EA,#F59E0B,#059669);opacity:.7"></div>
+</div>
+<div><span class="phase-pill p-train">⬡ Training Phase — Centralized</span></div>
+
+<!--
+  LAYOUT (all SVG units):
+  Columns left-edge / width:
+    ENV : x=8,   w=112  right=120
+    OBS : x=140, w=94   right=234  gap=20
+    DQN : x=254, w=148  right=402  gap=20
+    MIX : x=424, w=158  right=582  gap=22
+    QTOT: x=602, w=120  right=722  gap=20
+    LOSS: x=744, w=148  right=892  gap=22
+
+  Rows top-edge / height (no overlaps):
+    DQN₀ online : y=22,  h=86  bot=108
+    DQN₀ target : y=118, h=68  bot=186
+    DQN₁ online : y=196, h=86  bot=282  (gap=10 from target)
+    DQN₁ target : y=292, h=68  bot=360
+
+    ENV  : y=22,  h=338 bot=360 (covers all rows)
+    OBS₀ : y=22,  h=86  (same as DQN₀ online)
+    OBS₁ : y=196, h=86  (same as DQN₁ online)
+    MIX  : y=104, h=162 bot=266
+    QTOT : y=162, h=80  bot=242
+    LOSS : y=130, h=120 bot=250
+    REPLAY: y=382, h=88 bot=470
+
+  SVG viewBox: 0 0 908 490  (892+16 width, 470+20 height)
+-->
+
+<svg id="mainsvg" viewBox="0 0 908 490" style="width:100%;max-width:908px;display:block;" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="m-grn" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1,1L6,3.5L1,6" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round"/></marker>
+  <marker id="m-blu" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1,1L6,3.5L1,6" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/></marker>
+  <marker id="m-org" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1,1L6,3.5L1,6" fill="none" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round"/></marker>
+  <marker id="m-amb" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1,1L6,3.5L1,6" fill="none" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round"/></marker>
+  <marker id="m-vio" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1,1L6,3.5L1,6" fill="none" stroke="#9333EA" stroke-width="1.8" stroke-linecap="round"/></marker>
+  <marker id="m-pur" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1,1L6,3.5L1,6" fill="none" stroke="#7B35CC" stroke-width="1.8" stroke-linecap="round"/></marker>
+  <marker id="m-pnk" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1,1L6,3.5L1,6" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round"/></marker>
+  <marker id="m-lav" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1,1L6,3.5L1,6" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/></marker>
+  <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+
+<!-- ═══ ARROWS (behind nodes) ═══ -->
+
+<!-- ENV → OBS₀ (blue) -->
+<line x1="120" y1="65" x2="140" y2="65" stroke="#2563EB" stroke-width="1.8" marker-end="url(#m-blu)"/>
+<text x="125" y="60" class="al" fill="#60a5fa">obs₀</text>
+<!-- ENV → OBS₁ (blue) -->
+<line x1="120" y1="239" x2="140" y2="239" stroke="#2563EB" stroke-width="1.8" marker-end="url(#m-blu)"/>
+<text x="125" y="234" class="al" fill="#60a5fa">obs₁</text>
+<!-- OBS₀ → DQN₀ online -->
+<line x1="234" y1="65" x2="254" y2="65" stroke="#EA580C" stroke-width="1.8" marker-end="url(#m-org)"/>
+<!-- OBS₁ → DQN₁ online -->
+<line x1="234" y1="239" x2="254" y2="239" stroke="#EA580C" stroke-width="1.8" marker-end="url(#m-org)"/>
+
+<!-- DQN₀ online → MIX (Q₀, amber curved) -->
+<path d="M402,65 C416,65 422,150 424,162" fill="none" stroke="#F59E0B" stroke-width="1.8" marker-end="url(#m-amb)"/>
+<text x="407" y="103" class="al" fill="#fbbf24">Q₀</text>
+<!-- DQN₁ online → MIX (Q₁, amber curved) -->
+<path d="M402,239 C416,239 422,215 424,213" fill="none" stroke="#F59E0B" stroke-width="1.8" marker-end="url(#m-amb)"/>
+<text x="407" y="242" class="al" fill="#fbbf24">Q₁</text>
+
+<!-- ENV bottom → REPLAY (pink, stays inside diagram) -->
+<path d="M64,360 C64,375 140,375 140,426" fill="none" stroke="#DB2777" stroke-width="1.5" marker-end="url(#m-pnk)"/>
+<text x="68" y="395" class="al" fill="#ec4899">transitions</text>
+
+<!-- ENV bottom → MIX bottom (joint state, dashed green, arcs under all) -->
+<path d="M120,320 C120,470 503,470 503,266" fill="none" stroke="#059669" stroke-width="1.4" stroke-dasharray="6,4" marker-end="url(#m-grn)"/>
+<text x="190" y="466" class="al" fill="#34d399">z = [s₀ ; s₁]  joint state  (centralized)</text>
+
+<!-- MIX → QTOT (violet) -->
+<line x1="582" y1="185" x2="602" y2="200" stroke="#9333EA" stroke-width="1.8" marker-end="url(#m-vio)"/>
+<text x="582" y="182" class="al" fill="#a855f7">Q_tot</text>
+
+<!-- QTOT → LOSS (purple) -->
+<line x1="722" y1="202" x2="744" y2="192" stroke="#7B35CC" stroke-width="1.8" marker-end="url(#m-pur)"/>
+
+<!-- DQN₀ target → LOSS (orange dashed, target Q values) -->
+<path d="M402,152 C560,130 660,162 744,170" fill="none" stroke="rgba(234,88,12,.45)" stroke-width="1.3" stroke-dasharray="5,3" marker-end="url(#m-org)"/>
+<text x="490" y="140" class="al" fill="rgba(249,115,22,.6)">target Q</text>
+<!-- DQN₁ target → LOSS (orange dashed) -->
+<path d="M402,326 C580,355 670,238 744,222" fill="none" stroke="rgba(234,88,12,.45)" stroke-width="1.3" stroke-dasharray="5,3" marker-end="url(#m-org)"/>
+
+<!-- REPLAY → LOSS (pink, mini-batch) -->
+<path d="M302,426 C560,426 700,255 744,242" fill="none" stroke="#DB2777" stroke-width="1.4" marker-end="url(#m-pnk)"/>
+<text x="390" y="420" class="al" fill="#ec4899">U(D) mini-batch</text>
+
+<!-- Gradient arcs over top: LOSS → DQN₀ + MIX + DQN₁ -->
+<path d="M868,130 C905,8 186,8 254,44" fill="none" stroke="#a78bfa" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#m-lav)"/>
+<path d="M868,126 C905,2 500,2 503,104" fill="none" stroke="#a78bfa" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#m-lav)"/>
+<path d="M868,122 C905,0 186,0 254,218" fill="none" stroke="#a78bfa" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#m-lav)"/>
+<text x="800" y="22" class="al" fill="#a78bfa">∇ gradients</text>
+
+<!-- τ soft-updates (orange dotted, tiny verticals) -->
+<line x1="328" y1="108" x2="328" y2="118" stroke="rgba(234,88,12,.7)" stroke-width="1.3" stroke-dasharray="3,2" marker-end="url(#m-org)"/>
+<text x="333" y="116" class="al" fill="rgba(249,115,22,.65)">τ</text>
+<line x1="328" y1="282" x2="328" y2="292" stroke="rgba(234,88,12,.7)" stroke-width="1.3" stroke-dasharray="3,2" marker-end="url(#m-org)"/>
+<text x="333" y="290" class="al" fill="rgba(249,115,22,.65)">τ</text>
+
+<!-- ═══ NODES (front layer) ═══ -->
+
+<!-- ENV — spans all agent rows, y=22 h=338 -->
+<g data-tip="Overcooked environment — 3 layouts of escalating coordination complexity (cramped_room, coordination_ring, counter_circuit). H=400 timesteps/episode. Team reward +20 per soup delivered. Provides per-agent 96-dim observation vectors at every step." cursor="default">
+  <rect x="8" y="22" width="112" height="338" rx="10" class="env-rect" stroke-width="1.5"/>
+  <text x="64" y="42" text-anchor="middle" class="lbl env-lbl">Environment</text>
+  <text x="64" y="64" text-anchor="middle" class="ttl env-ttl">Overcooked</text>
+  <text x="64" y="82" text-anchor="middle" class="sub env-sub">3 layouts</text>
+  <text x="64" y="97" text-anchor="middle" class="sub env-sub">H=400 steps</text>
+  <text x="64" y="112" text-anchor="middle" class="sub env-sub">r=+20/soup</text>
+</g>
+
+<!-- OBS₀ — y=22 h=86 -->
+<g data-tip="Agent 0 observation: 96-dimensional player-centric feature vector. Encodes own position, held object, nearby terrain, pot status, and partner agent features. Even though environment is fully observable, encoding is player-centric — OBS₀ ≠ OBS₁." cursor="default">
+  <rect x="140" y="22" width="94" height="86" rx="9" class="obs-rect" stroke-width="1.5"/>
+  <text x="187" y="42" text-anchor="middle" class="lbl obs-lbl">Obs₀</text>
+  <text x="187" y="62" text-anchor="middle" class="ttl obs-ttl">s₀ ∈ ℝ⁹⁶</text>
+  <text x="187" y="79" text-anchor="middle" class="sub obs-sub">player 0</text>
+  <text x="187" y="94" text-anchor="middle" class="sub obs-sub">features</text>
+</g>
+
+<!-- OBS₁ — y=196 h=86 -->
+<g data-tip="Agent 1 observation: same 96-dim encoding scheme but player-centric for Agent 1. Distinct from OBS₀ despite full observability — the centric encoding means OBS₀ and OBS₁ contain different feature values for the same environment state." cursor="default">
+  <rect x="140" y="196" width="94" height="86" rx="9" class="obs-rect" stroke-width="1.5"/>
+  <text x="187" y="216" text-anchor="middle" class="lbl obs-lbl">Obs₁</text>
+  <text x="187" y="236" text-anchor="middle" class="ttl obs-ttl">s₁ ∈ ℝ⁹⁶</text>
+  <text x="187" y="253" text-anchor="middle" class="sub obs-sub">player 1</text>
+  <text x="187" y="268" text-anchor="middle" class="sub obs-sub">features</text>
+</g>
+
+<!-- DQN₀ online — y=22 h=86 -->
+<g data-tip="Agent 0 online DQN — maps 96-dim observation to Q-values for all 6 discrete actions. Updated every training step via TD gradient. Produces Q₀(s₀,a₀), the Q-value for the action actually taken, which flows into the mixing network." cursor="default">
+  <rect x="254" y="22" width="148" height="86" rx="9" class="dqn-rect" stroke-width="1.5"/>
+  <text x="328" y="42" text-anchor="middle" class="lbl dqn-lbl">Agent 0 — Online</text>
+  <text x="328" y="62" text-anchor="middle" class="ttl dqn-ttl">DQN₀</text>
+  <text x="328" y="79" text-anchor="middle" class="sub dqn-sub">FNN · ReLU</text>
+  <text x="328" y="94" text-anchor="middle" class="sub dqn-sub">obs → Q(s,a) ∀a</text>
+</g>
+
+<!-- DQN₀ target — y=118 h=68 (dashed border) -->
+<g data-tip="Agent 0 target DQN — identical architecture, updated only via Polyak averaging: θ̄₀ ← τθ₀ + (1-τ)θ̄₀. Provides stable Q-value targets for Bellman backup. Dashed border = frozen between soft-update steps." cursor="default">
+  <rect x="254" y="118" width="148" height="68" rx="9" class="tgt-rect" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="328" y="137" text-anchor="middle" class="lbl tgt-lbl">Agent 0 — Target</text>
+  <text x="328" y="156" text-anchor="middle" class="ttl tgt-ttl" style="font-size:12px">DQN₀_tgt</text>
+  <text x="328" y="173" text-anchor="middle" class="sub tgt-sub">θ̄₀ ← τθ₀+(1-τ)θ̄₀</text>
+</g>
+
+<!-- DQN₁ online — y=196 h=86 -->
+<g data-tip="Agent 1 online DQN — same architecture as DQN₀, independent parameters. Both agents have no knowledge of each other's parameters. Environment swaps agent identities each episode, so both see similar distributions and converge to symmetric policies." cursor="default">
+  <rect x="254" y="196" width="148" height="86" rx="9" class="dqn-rect" stroke-width="1.5"/>
+  <text x="328" y="216" text-anchor="middle" class="lbl dqn-lbl">Agent 1 — Online</text>
+  <text x="328" y="236" text-anchor="middle" class="ttl dqn-ttl">DQN₁</text>
+  <text x="328" y="253" text-anchor="middle" class="sub dqn-sub">FNN · ReLU</text>
+  <text x="328" y="268" text-anchor="middle" class="sub dqn-sub">obs → Q(s,a) ∀a</text>
+</g>
+
+<!-- DQN₁ target — y=292 h=68 -->
+<g data-tip="Agent 1 target DQN — same as DQN₀ target. All target networks (both agent targets + mixing target) use the same Polyak averaging constant τ for consistent stability across the entire QMIX system." cursor="default">
+  <rect x="254" y="292" width="148" height="68" rx="9" class="tgt-rect" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="328" y="311" text-anchor="middle" class="lbl tgt-lbl">Agent 1 — Target</text>
+  <text x="328" y="330" text-anchor="middle" class="ttl tgt-ttl" style="font-size:12px">DQN₁_tgt</text>
+  <text x="328" y="347" text-anchor="middle" class="sub tgt-sub">θ̄₁ ← τθ₁+(1-τ)θ̄₁</text>
+</g>
+
+<!-- MIXING NETWORK — y=104 h=162, glow effect -->
+<g data-tip="QMIX Mixing Network — the architectural core. Takes Q₀, Q₁ plus joint state z=[s₀;s₁]. Four hypernetworks generate state-conditioned mixing weights W₁,B₁,W₂,B₂. Softplus activation on W generators ensures ∂Q_tot/∂Qᵢ > 0 everywhere — the IGM property is architecturally guaranteed." cursor="default" filter="url(#glow)">
+  <rect x="424" y="104" width="158" height="162" rx="10" class="mix-rect" stroke-width="2.5"/>
+  <text x="503" y="126" text-anchor="middle" class="lbl mix-lbl">Mixing Network ⚡ Core</text>
+  <text x="503" y="150" text-anchor="middle" class="ttl mix-ttl">f_mix → Q_tot</text>
+  <text x="503" y="168" text-anchor="middle" class="sub mix-sub">4 hypernetworks</text>
+  <text x="503" y="184" text-anchor="middle" class="sub mix-sub">z-conditioned weights</text>
+  <text x="503" y="200" text-anchor="middle" class="sub mix-sub">Softplus → IGM ✓</text>
+  <rect x="440" y="212" width="128" height="22" rx="5" fill="rgba(123,53,204,.18)" stroke="rgba(123,53,204,.42)" stroke-width="1"/>
+  <text x="504" y="226" text-anchor="middle" style="font-size:9px;font-family:'DM Mono',monospace;" fill="#c4b5fd">∇ learns credit</text>
+</g>
+
+<!-- Q_TOT — y=162 h=80 -->
+<g data-tip="Q_tot ∈ ℝ — scalar centralized team action-value. Represents expected team return for joint action (a₀,a₁) in state (s₀,s₁). Only exists during training — not needed at evaluation. Gradient flows back from Q_tot through mixing into both agent DQNs." cursor="default">
+  <rect x="602" y="162" width="120" height="80" rx="9" class="qtot-rect" stroke-width="1.5"/>
+  <text x="662" y="182" text-anchor="middle" class="lbl qtot-lbl">Team Value</text>
+  <text x="662" y="202" text-anchor="middle" class="ttl qtot-ttl">Q_tot ∈ ℝ</text>
+  <text x="662" y="220" text-anchor="middle" class="sub qtot-sub">centralized</text>
+  <text x="662" y="234" text-anchor="middle" class="sub qtot-sub">training only</text>
+</g>
+
+<!-- TD LOSS — y=130 h=120 -->
+<g data-tip="Smooth L1 Bellman Loss: L = E[(r + γ·max Q_tot_target − Q_tot)²]. Gradient flows through Q_tot back through the mixing network into both agent DQNs — giving each agent explicit credit signal proportional to their contribution to the team value." cursor="default">
+  <rect x="744" y="130" width="148" height="120" rx="9" class="loss-rect" stroke-width="1.5"/>
+  <text x="818" y="150" text-anchor="middle" class="lbl loss-lbl">TD Loss</text>
+  <text x="818" y="170" text-anchor="middle" class="ttl loss-ttl">Smooth L1</text>
+  <text x="818" y="188" text-anchor="middle" class="sub loss-sub">Bellman target:</text>
+  <text x="818" y="203" text-anchor="middle" class="sub loss-sub">r+γ·max Q̄_tot</text>
+  <text x="818" y="218" text-anchor="middle" class="sub loss-sub">∇ → DQNs + Mix</text>
+  <text x="818" y="238" text-anchor="middle" class="sub" fill="rgba(164,139,250,.7)">← gradients back</text>
+</g>
+
+<!-- REPLAY BUFFER — y=382 h=88 — fully within viewBox (bottom=470 < viewBox h=490) -->
+<g data-tip="Experience Replay Buffer — decouples data collection from optimization. Stores transitions (s₀,s₁,a₀,a₁,r,s₀',s₁'). Uniform random mini-batch sampling provides stable gradient estimates and breaks temporal correlation. Off-policy: same transition reused across many gradient steps." cursor="default">
+  <rect x="140" y="382" width="162" height="88" rx="9" class="buf-rect" stroke-width="1.5"/>
+  <text x="221" y="401" text-anchor="middle" class="lbl buf-lbl">Replay Buffer U(D)</text>
+  <text x="221" y="421" text-anchor="middle" class="ttl buf-ttl" style="font-size:12px">Large capacity</text>
+  <text x="221" y="439" text-anchor="middle" class="sub buf-sub">uniform sample · off-policy</text>
+  <text x="221" y="454" text-anchor="middle" class="sub buf-sub">breaks temporal correlation</text>
+</g>
+
+</svg>
+
+<!-- EXECUTION PHASE -->
+<div style="margin-top:12px;border-top:1px dashed rgba(255,255,255,.12);padding-top:12px;">
+<span class="phase-pill p-exec">▷ Execution Phase — Decentralized</span>
+<span style="font-size:10px;color:var(--ink3);margin-left:12px;">No Mixing Network required · Each agent acts independently on own observation only</span>
+<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:10px;">
+  <div style="background:var(--c-exec-bg);border:1px solid var(--c-exec-bd);border-radius:9px;padding:10px 14px;" data-tip="Agent 0 greedy execution: selects argmax_a Q₀(s₀,a) from its own DQN. No joint state. No mixing network. Fully decentralized.">
+    <div style="font-size:8px;letter-spacing:.17em;text-transform:uppercase;color:var(--c-exec-k)">Agent 0 — Greedy</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--c-exec-v)">DQN₀ inference</div>
+    <div style="font-size:9.5px;color:var(--c-exec-k)">a₀ = argmax Q₀(s₀,·)</div>
+  </div>
+  <span style="font-size:18px;color:#34d399;font-weight:700">+</span>
+  <div style="background:var(--c-exec-bg);border:1px solid var(--c-exec-bd);border-radius:9px;padding:10px 14px;" data-tip="Agent 1 greedy execution: independent argmax on its own DQN. IGM guarantees these two independent greedy choices together constitute the globally optimal joint action.">
+    <div style="font-size:8px;letter-spacing:.17em;text-transform:uppercase;color:var(--c-exec-k)">Agent 1 — Greedy</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--c-exec-v)">DQN₁ inference</div>
+    <div style="font-size:9.5px;color:var(--c-exec-k)">a₁ = argmax Q₁(s₁,·)</div>
+  </div>
+  <svg width="36" height="18"><defs><marker id="ea" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1,1L6,3.5L1,6" fill="none" stroke="#059669" stroke-width="1.8"/></marker></defs><line x1="2" y1="9" x2="30" y2="9" stroke="#059669" stroke-width="1.8" marker-end="url(#ea)"/></svg>
+  <div style="background:var(--c-env-bg);border:1px solid var(--c-env-bd);border-radius:9px;padding:10px 14px;">
+    <div style="font-size:8px;letter-spacing:.17em;text-transform:uppercase;color:var(--c-env-k)">Environment</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--c-env-v)">Overcooked</div>
+    <div style="font-size:9.5px;color:var(--c-env-k)">→ next state + reward</div>
+  </div>
+  <div style="margin-left:auto;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.22);border-radius:8px;padding:9px 13px;font-size:10px;color:#fbbf24;line-height:1.6;">
+    <strong style="color:#fde68a">IGM Guarantee:</strong><br>
+    argmax Q_tot = (argmax Q₀, argmax Q₁)<br>
+    <span style="color:var(--ink3)">Greedy local ≡ globally optimal</span>
+  </div>
+</div>
+</div>
+
+<!-- LEGEND -->
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:12px;margin-top:12px;border-top:1px solid var(--bdr);font-size:9.5px;color:var(--ink3);">
+  <div style="display:flex;align-items:center;gap:4px"><div style="width:9px;height:9px;border-radius:2px;background:#059669"></div>Environment</div>
+  <div style="display:flex;align-items:center;gap:4px"><div style="width:9px;height:9px;border-radius:2px;background:#2563EB"></div>Observations</div>
+  <div style="display:flex;align-items:center;gap:4px"><div style="width:9px;height:9px;border-radius:2px;background:#EA580C"></div>Agent DQNs</div>
+  <div style="display:flex;align-items:center;gap:4px"><div style="width:9px;height:9px;border-radius:2px;background:#F59E0B"></div>Mixing Net (novel)</div>
+  <div style="display:flex;align-items:center;gap:4px"><div style="width:9px;height:9px;border-radius:2px;background:#9333EA"></div>Team Value</div>
+  <div style="display:flex;align-items:center;gap:4px"><div style="width:9px;height:9px;border-radius:2px;background:#7B35CC"></div>TD Loss</div>
+  <div style="display:flex;align-items:center;gap:4px"><div style="width:9px;height:9px;border-radius:2px;background:#DB2777"></div>Replay Buffer</div>
+  <div style="display:flex;align-items:center;gap:4px"><svg width="20" height="8"><line x1="1" y1="4" x2="18" y2="4" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="4,2"/></svg>Gradients ∇</div>
+  <span style="margin-left:auto;font-size:9px">meetdoshi.me · Chaos to Cuisine · System Architecture</span>
+</div>
+
+<script>
+const tp=document.getElementById('tp');
+document.querySelectorAll('[data-tip]').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    tp.style.display='block';tp.innerHTML=el.getAttribute('data-tip');
+    let x=e.clientX+14,y=e.clientY-28;
+    if(x+250>window.innerWidth)x=e.clientX-260;
+    if(y<8)y=e.clientY+14;
+    if(y+100>window.innerHeight)y=window.innerHeight-110;
+    tp.style.left=x+'px';tp.style.top=y+'px';
+  });
+  el.addEventListener('mouseleave',()=>{tp.style.display='none';});
+});
+let dark=true;
+function tog(){dark=!dark;document.body.className=dark?'':'light';document.getElementById('tb').textContent=dark?'🌙':'☀️';}
+if(window.matchMedia('(prefers-color-scheme: light)').matches)tog();
+</script>
+
+<script>
+(function(){
+  function sendHeight(){
+    var h = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight
+    );
+    window.parent.postMessage({ type:'iframeResize', h:h }, '*');
+  }
+  // Fire after load + short delay (handles JS-rendered SVG content)
+  window.addEventListener('load', function(){ setTimeout(sendHeight, 150); });
+  // Re-fire on any layout change (theme toggle, tooltip open, window resize)
+  if(window.ResizeObserver){
+    new ResizeObserver(sendHeight).observe(document.documentElement);
+  }
+})();
+</script>
+
+</body>
+</html>
